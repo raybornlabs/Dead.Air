@@ -22,8 +22,6 @@
             --clip-audio-border: #38b2ac;
             --clip-music: #4a2870;
             --clip-music-border: #9f7aea;
-            --silence-glow: rgba(245, 158, 11, 0.4);
-            --silence-stripe: #b45309;
             --playhead-red: #ef4444;
             --emerald: #10b981;
         }
@@ -125,7 +123,6 @@
             overflow: hidden;
         }
 
-        /* Premiere App Title Bar */
         .pr-titlebar {
             background: #141416;
             height: 34px;
@@ -260,7 +257,6 @@
             overflow: hidden;
         }
 
-        /* Simulated Video Screen */
         .simulated-video-screen {
             width: 380px;
             height: 160px;
@@ -328,7 +324,7 @@
             color: #f59e0b;
         }
 
-        /* Audio VU Meter (Right edge of monitor) */
+        /* Audio Level VU Meter */
         .vu-meter-bar {
             position: absolute;
             right: 14px;
@@ -452,6 +448,15 @@
             gap: 6px;
         }
 
+        .timeline-hint {
+            font-size: 9.5px;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .timeline-hint b {
+            color: #38bdf8;
+        }
+
         .timeline-backup-toast {
             background: rgba(16, 185, 129, 0.15);
             color: #34d399;
@@ -465,7 +470,7 @@
             gap: 4px;
         }
 
-        /* Timeline Header Ruler & Time scale */
+        /* Timeline Ruler */
         .timeline-ruler {
             height: 22px;
             background: #1a1a1d;
@@ -542,7 +547,6 @@
             height: 68px;
         }
 
-        /* Track Headers (Left column) */
         .track-header {
             width: 90px;
             background: #18181b;
@@ -589,7 +593,6 @@
             color: #fff;
         }
 
-        /* Track Content Lane */
         .track-lane {
             flex: 1;
             position: relative;
@@ -599,7 +602,7 @@
             overflow: hidden;
         }
 
-        /* Timeline Clips */
+        /* Distinct Timeline Clips (Clickable) */
         .timeline-clip {
             position: absolute;
             top: 4px;
@@ -613,6 +616,18 @@
             cursor: pointer;
             transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid transparent;
+        }
+
+        .timeline-clip:hover {
+            filter: brightness(1.15);
+        }
+
+        /* Selection Outline (Premiere Pro style) */
+        .timeline-clip.selected {
+            outline: 2px solid #ffffff !important;
+            outline-offset: -1px;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+            z-index: 20;
         }
 
         .clip-v1 {
@@ -642,7 +657,6 @@
             z-index: 2;
         }
 
-        /* Waveform Canvas */
         .waveform-canvas {
             position: absolute;
             inset: 0;
@@ -652,30 +666,30 @@
             opacity: 0.85;
         }
 
-        /* Dead Air Silence Gap Highlight Overlay */
+        /* Dead Air Silence Highlight Overlay (Only visible when detected / marked) */
         .silence-gap-overlay {
             position: absolute;
-            top: 4px;
-            bottom: 4px;
+            top: 2px;
+            bottom: 2px;
             background: repeating-linear-gradient(
                 -45deg,
-                rgba(245, 158, 11, 0.18),
-                rgba(245, 158, 11, 0.18) 6px,
-                rgba(245, 158, 11, 0.32) 6px,
-                rgba(245, 158, 11, 0.32) 12px
+                rgba(245, 158, 11, 0.25),
+                rgba(245, 158, 11, 0.25) 6px,
+                rgba(245, 158, 11, 0.45) 6px,
+                rgba(245, 158, 11, 0.45) 12px
             );
-            border: 1px dashed rgba(245, 158, 11, 0.8);
-            border-radius: 3px;
+            border: 1px dashed #f59e0b;
+            border-radius: 2px;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 5;
+            z-index: 15;
             transition: all 0.35s ease;
-            box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
         }
 
         .silence-gap-label {
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.85);
             color: #fbbf24;
             font-size: 8px;
             font-weight: 800;
@@ -687,7 +701,7 @@
         }
 
         .silence-gap-overlay.cut-active {
-            background: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.5);
             border-color: #10b981;
             transform: scaleY(0);
             opacity: 0;
@@ -1189,7 +1203,7 @@
         }
 
         .modal-close-btn {
-            flex: 1;
+            flex: 1.5;
             background: #25252d;
             border: 1px solid #3e3e48;
             color: #cbd5e1;
@@ -1198,13 +1212,14 @@
             padding: 10px;
             border-radius: 6px;
             cursor: pointer;
+            transition: all 0.15s ease;
         }
         .modal-close-btn:hover {
             background: #33333d;
             color: #fff;
+            border-color: #64748b;
         }
 
-        /* Responsive adjustments */
         @media (max-width: 900px) {
             .pr-workspace-grid {
                 grid-template-columns: 1fr;
@@ -1226,7 +1241,7 @@
             <span class="cta-brand-pill">Interactive Simulator</span>
         </div>
         <div class="cta-center-msg">
-            <span>⚡ Try Before You Buy:</span> Test the silence cutting algorithm live inside this simulated Premiere Pro interface!
+            <span>⚡ Interactive Premiere Pro Simulator:</span> Test the silence cutting algorithm live inside this simulated Premiere Pro interface!
         </div>
         <a href="https://raybornlabs.gumroad.com/l/eyocco" target="_blank" class="cta-buy-btn">
             <span>Get DeadAir for $5</span>
@@ -1284,7 +1299,7 @@
                         <div class="video-title-caption">EPISODE 14: WORKFLOW AUTOMATION</div>
                         <div class="video-status-subtitle" id="videoStatusSub">
                             <span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span>
-                            <span id="videoStatusText">Active Dialogue</span>
+                            <span id="videoStatusText">Ready (Spacebar = Play)</span>
                         </div>
                         <!-- Audio Level VU Meter -->
                         <div class="vu-meter-bar">
@@ -1313,15 +1328,16 @@
                     <div class="timeline-tab-title">
                         <span>🎞️ Sequence: Podcast_Interview_Master</span>
                     </div>
+                    <div class="timeline-hint" id="timelineModeHint">
+                        Mode: <b>Whole Timeline</b> (Click "Selected Clip" tab to cut a single clip)
+                    </div>
                     <div class="timeline-backup-toast" id="backupToast">
                         <span>🛡️ Auto-Backup Created: Sequence_Master_Backup_01</span>
                     </div>
                 </div>
 
                 <!-- Time Ruler -->
-                <div class="timeline-ruler" id="timelineRuler">
-                    <!-- Generated ticks in JS -->
-                </div>
+                <div class="timeline-ruler" id="timelineRuler"></div>
 
                 <!-- Red Playhead -->
                 <div class="timeline-playhead-line" id="playheadLine">
@@ -1343,9 +1359,7 @@
                                 <div class="trk-btn">🔒</div>
                             </div>
                         </div>
-                        <div class="track-lane" id="laneV1">
-                            <!-- Video Clips rendered by JS -->
-                        </div>
+                        <div class="track-lane" id="laneV1"></div>
                     </div>
 
                     <!-- A1 Dialogue Track (Waveforms & Dead Air) -->
@@ -1361,9 +1375,7 @@
                                 <div class="trk-btn">R</div>
                             </div>
                         </div>
-                        <div class="track-lane" id="laneA1">
-                            <!-- Audio Clips & Gaps rendered by JS -->
-                        </div>
+                        <div class="track-lane" id="laneA1"></div>
                     </div>
 
                     <!-- A2 Background Music Track (Sync Locked) -->
@@ -1379,7 +1391,6 @@
                             </div>
                         </div>
                         <div class="track-lane" id="laneA2">
-                            <!-- Background Music Clip (untouched) -->
                             <div class="timeline-clip clip-a2" style="left: 0%; width: 100%;">
                                 <div class="clip-title-label">🎵 Ambient_Podcast_Bed_Stereo.wav [Sync-Locked]</div>
                             </div>
@@ -1415,7 +1426,6 @@
 
                     <!-- Precision Dials Card -->
                     <div class="controls-card">
-                        <!-- Threshold Dial -->
                         <div class="control-row">
                             <div class="control-label-row">
                                 <span>SILENCE THRESHOLD</span>
@@ -1424,7 +1434,6 @@
                             <input type="range" class="control-slider" id="sliderThreshold" min="-50" max="-15" value="-30" step="1">
                         </div>
 
-                        <!-- Min Silence Dial -->
                         <div class="control-row">
                             <div class="control-label-row">
                                 <span>MIN SILENCE DURATION</span>
@@ -1433,7 +1442,6 @@
                             <input type="range" class="control-slider" id="sliderMinSilence" min="0.2" max="1.5" value="0.5" step="0.05">
                         </div>
 
-                        <!-- Padding Buffer Dial -->
                         <div class="control-row">
                             <div class="control-label-row">
                                 <span>PADDING BUFFER</span>
@@ -1446,20 +1454,20 @@
                     <!-- Detection Metrics -->
                     <div class="metrics-card">
                         <div class="metric-item">
-                            <span class="metric-title">Dead Air Pauses</span>
-                            <span class="metric-val" id="metricGapsCount">5 pauses</span>
+                            <span class="metric-title">Target Pauses</span>
+                            <span class="metric-val" id="metricGapsCount">--</span>
                         </div>
                         <div class="metric-item">
                             <span class="metric-title">Silence Time</span>
-                            <span class="metric-val" id="metricSilenceDuration">22.4s</span>
+                            <span class="metric-val" id="metricSilenceDuration">--</span>
                         </div>
                         <div class="metric-item">
-                            <span class="metric-title">Original Duration</span>
+                            <span class="metric-title">Sequence Duration</span>
                             <span class="metric-val" id="metricOrigDuration">01:42</span>
                         </div>
                         <div class="metric-item">
                             <span class="metric-title">Projected Save</span>
-                            <span class="metric-val saved" id="metricTimeSaved">36.5%</span>
+                            <span class="metric-val saved" id="metricTimeSaved">--</span>
                         </div>
                     </div>
 
@@ -1480,7 +1488,7 @@
                     <!-- Real-Time Status Subline -->
                     <div class="status-subline-pill" id="statusSubline">
                         <div class="subline-dot" id="sublineDot"></div>
-                        <span id="sublineText">Ready to analyze sequence</span>
+                        <span id="sublineText">Ready to cut whole sequence</span>
                     </div>
 
                     <!-- Reset / Undo Button -->
@@ -1514,11 +1522,11 @@
             <div class="modal-stats-box">
                 <div>
                     <div style="font-size:9px;color:#64748b;font-weight:700;">TIME REMOVED</div>
-                    <div style="font-size:16px;font-weight:900;color:#10b981;" id="modalTimeRemoved">22.4 Seconds</div>
+                    <div style="font-size:16px;font-weight:900;color:#10b981;" id="modalTimeRemoved">18.5 Seconds</div>
                 </div>
                 <div>
                     <div style="font-size:9px;color:#64748b;font-weight:700;">SPEED BOOST</div>
-                    <div style="font-size:16px;font-weight:900;color:#38bdf8;" id="modalSpeedBoost">+36.5% Faster</div>
+                    <div style="font-size:16px;font-weight:900;color:#38bdf8;" id="modalSpeedBoost">+32.4% Faster</div>
                 </div>
             </div>
             <div class="modal-btn-row">
@@ -1526,36 +1534,78 @@
                     <span>Get DeadAir for $5</span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </a>
-                <button class="modal-close-btn" id="modalBtnClose">Test Timeline</button>
+                <button class="modal-close-btn" id="modalBtnRestart">↺ Test Timeline Again (Restart)</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 1. TIMELINE DATA MODEL (Simulated Sequence) ---
-        const BASE_SEGMENTS = [
-            { type: 'speech', text: 'Welcome back to the podcast!', duration: 14 },
-            { type: 'silence', duration: 4.8 },
-            { type: 'speech', text: 'Today we are exploring automated workflow engineering.', duration: 22 },
-            { type: 'silence', duration: 5.2 },
-            { type: 'speech', text: 'Cutting 45 minutes of natural silences manually is exhausting.', duration: 18 },
-            { type: 'silence', duration: 4.2 },
-            { type: 'speech', text: 'With DeadAir, one click ripple-deletes every gap.', duration: 20 },
-            { type: 'silence', duration: 5.6 },
-            { type: 'speech', text: 'Leaving perfect padding buffer so words never get clipped.', duration: 18 }
+        // --- 1. MULTI-CLIP DATA MODEL (4 DISTINCT CLIPS) ---
+        // Each clip has speech chunks and internal silence pauses
+        const INITIAL_CLIPS = [
+            {
+                id: 1,
+                name: 'Clip_01_Intro',
+                videoName: 'Cam_A_Intro.mp4',
+                audioName: '🎙️ Voice_01.wav',
+                isCut: false,
+                subsegments: [
+                    { type: 'speech', duration: 8.5 },
+                    { type: 'silence', duration: 4.5 },
+                    { type: 'speech', duration: 11.0 }
+                ]
+            },
+            {
+                id: 2,
+                name: 'Clip_02_Workflow',
+                videoName: 'Cam_A_Workflow.mp4',
+                audioName: '🎙️ Voice_02.wav',
+                isCut: false,
+                subsegments: [
+                    { type: 'speech', duration: 9.0 },
+                    { type: 'silence', duration: 5.0 },
+                    { type: 'speech', duration: 13.0 }
+                ]
+            },
+            {
+                id: 3,
+                name: 'Clip_03_ManualPain',
+                videoName: 'Cam_A_ManualPain.mp4',
+                audioName: '🎙️ Voice_03.wav',
+                isCut: false,
+                subsegments: [
+                    { type: 'speech', duration: 8.0 },
+                    { type: 'silence', duration: 4.8 },
+                    { type: 'speech', duration: 12.5 }
+                ]
+            },
+            {
+                id: 4,
+                name: 'Clip_04_DeadAirFix',
+                videoName: 'Cam_A_DeadAirFix.mp4',
+                audioName: '🎙️ Voice_04.wav',
+                isCut: false,
+                subsegments: [
+                    { type: 'speech', duration: 9.5 },
+                    { type: 'silence', duration: 5.5 },
+                    { type: 'speech', duration: 11.5 }
+                ]
+            }
         ];
 
         let state = {
+            mode: 'timeline', // 'timeline' or 'clip'
+            selectedClipId: 2, // default select Clip 2 when in 'clip' mode
             isPlaying: false,
             currentTime: 0,
-            isCut: false,
             isMarked: false,
             isReviewMode: false,
+            showDetectedSilence: false, // Clean startup: false until user clicks Cut/Mark
             threshold: -30,
             minSilence: 0.50,
             padding: 0.15,
             audioMuted: false,
-            segments: JSON.parse(JSON.stringify(BASE_SEGMENTS))
+            clips: JSON.parse(JSON.stringify(INITIAL_CLIPS))
         };
 
         // --- 2. DOM ELEMENTS ---
@@ -1564,6 +1614,7 @@
         const laneV1 = document.getElementById('laneV1');
         const laneA1 = document.getElementById('laneA1');
         const timelineRuler = document.getElementById('timelineRuler');
+        const timelineModeHint = document.getElementById('timelineModeHint');
         const btnPlayPause = document.getElementById('btnPlayPause');
         const btnGoStart = document.getElementById('btnGoStart');
         const btnStepBack = document.getElementById('btnStepBack');
@@ -1577,7 +1628,9 @@
         const vuChannelR = document.getElementById('vuChannelR');
         const backupToast = document.getElementById('backupToast');
 
-        // Plugin controls
+        const tabSelectedClip = document.getElementById('tabSelectedClip');
+        const tabWholeTimeline = document.getElementById('tabWholeTimeline');
+
         const sliderThreshold = document.getElementById('sliderThreshold');
         const lblThreshold = document.getElementById('lblThreshold');
         const sliderMinSilence = document.getElementById('sliderMinSilence');
@@ -1592,15 +1645,13 @@
         const sublineText = document.getElementById('sublineText');
         const btnResetTimeline = document.getElementById('btnResetTimeline');
 
-        // Metrics
         const metricGapsCount = document.getElementById('metricGapsCount');
         const metricSilenceDuration = document.getElementById('metricSilenceDuration');
         const metricOrigDuration = document.getElementById('metricOrigDuration');
         const metricTimeSaved = document.getElementById('metricTimeSaved');
 
-        // Modal
         const successModal = document.getElementById('successModal');
-        const modalBtnClose = document.getElementById('modalBtnClose');
+        const modalBtnRestart = document.getElementById('modalBtnRestart');
         const modalTimeRemoved = document.getElementById('modalTimeRemoved');
         const modalSpeedBoost = document.getElementById('modalSpeedBoost');
 
@@ -1694,9 +1745,13 @@
             } catch(e){}
         }
 
-        // --- 5. TIMELINE RENDERING ENGINE ---
+        // --- 5. TIMELINE RENDERING & SELECTION ---
+        function getClipDuration(clip) {
+            return clip.subsegments.reduce((acc, s) => acc + s.duration, 0);
+        }
+
         function getTotalDuration() {
-            return state.segments.reduce((acc, s) => acc + s.duration, 0);
+            return state.clips.reduce((acc, c) => acc + getClipDuration(c), 0);
         }
 
         function formatTimecode(seconds) {
@@ -1735,53 +1790,64 @@
             const total = getTotalDuration();
             let currentOffset = 0;
 
-            state.segments.forEach((seg, idx) => {
+            state.clips.forEach((clip) => {
+                const clipDuration = getClipDuration(clip);
                 const startPct = (currentOffset / total) * 100;
-                const widthPct = (seg.duration / total) * 100;
+                const widthPct = (clipDuration / total) * 100;
 
-                if (seg.type === 'speech') {
-                    // Render Video Clip (V1)
-                    const vClip = document.createElement('div');
-                    vClip.className = 'timeline-clip clip-v1';
-                    vClip.style.left = `${startPct}%`;
-                    vClip.style.width = `calc(${widthPct}% - 2px)`;
-                    vClip.innerHTML = `<div class="clip-title-label">Cam_A_${idx + 1}.mp4 [4K]</div>`;
-                    laneV1.appendChild(vClip);
+                const isSelected = (state.mode === 'clip' && clip.id === state.selectedClipId);
 
-                    // Render Audio Clip (A1)
-                    const aClip = document.createElement('div');
-                    aClip.className = 'timeline-clip clip-a1';
-                    aClip.style.left = `${startPct}%`;
-                    aClip.style.width = `calc(${widthPct}% - 2px)`;
-                    aClip.innerHTML = `
-                        <div class="clip-title-label">🎙️ Dialogue_${idx + 1}.wav</div>
-                        <canvas class="waveform-canvas"></canvas>
-                    `;
-                    laneA1.appendChild(aClip);
+                // Render V1 Video Clip
+                const vClip = document.createElement('div');
+                vClip.className = `timeline-clip clip-v1 ${isSelected ? 'selected' : ''}`;
+                vClip.style.left = `${startPct}%`;
+                vClip.style.width = `calc(${widthPct}% - 2px)`;
+                vClip.innerHTML = `<div class="clip-title-label">${clip.videoName} [4K]</div>`;
+                vClip.onclick = () => selectClip(clip.id);
+                laneV1.appendChild(vClip);
 
-                    setTimeout(() => drawClipWaveform(aClip.querySelector('canvas')), 20);
+                // Render A1 Audio Clip
+                const aClip = document.createElement('div');
+                aClip.className = `timeline-clip clip-a1 ${isSelected ? 'selected' : ''}`;
+                aClip.style.left = `${startPct}%`;
+                aClip.style.width = `calc(${widthPct}% - 2px)`;
+                aClip.innerHTML = `
+                    <div class="clip-title-label">${clip.audioName}</div>
+                    <canvas class="waveform-canvas"></canvas>
+                `;
+                aClip.onclick = () => selectClip(clip.id);
+                laneA1.appendChild(aClip);
 
-                } else if (seg.type === 'silence') {
-                    // Render Dead Air Silence Gap
-                    if (!state.isCut) {
-                        const gap = document.createElement('div');
-                        gap.className = 'silence-gap-overlay';
-                        gap.style.left = `${startPct}%`;
-                        gap.style.width = `calc(${widthPct}% - 2px)`;
-                        gap.id = `gap-${idx}`;
-                        gap.innerHTML = `<div class="silence-gap-label">⚠️ ${seg.duration.toFixed(1)}s DEAD AIR</div>`;
-                        laneA1.appendChild(gap);
-                    }
+                // Draw waveform
+                setTimeout(() => drawWaveform(aClip.querySelector('canvas'), clip), 20);
+
+                // If detection is active (after user clicks cut or mark), draw silence overlays
+                if (state.showDetectedSilence && !clip.isCut) {
+                    let subOffset = 0;
+                    clip.subsegments.forEach((seg, sIdx) => {
+                        if (seg.type === 'silence') {
+                            const gapLeftPct = (subOffset / clipDuration) * 100;
+                            const gapWidthPct = (seg.duration / clipDuration) * 100;
+
+                            const gap = document.createElement('div');
+                            gap.className = 'silence-gap-overlay';
+                            gap.style.left = `${gapLeftPct}%`;
+                            gap.style.width = `${gapWidthPct}%`;
+                            gap.innerHTML = `<div class="silence-gap-label">⚠️ ${seg.duration.toFixed(1)}s DEAD AIR</div>`;
+                            aClip.appendChild(gap);
+                        }
+                        subOffset += seg.duration;
+                    });
                 }
 
-                currentOffset += seg.duration;
+                currentOffset += clipDuration;
             });
 
             renderRuler();
             updateMetrics();
         }
 
-        function drawClipWaveform(canvas) {
+        function drawWaveform(canvas, clip) {
             if (!canvas) return;
             const w = canvas.offsetWidth;
             const h = canvas.offsetHeight;
@@ -1793,33 +1859,70 @@
             ctx.fillStyle = '#2dd4bf';
 
             const mid = h / 2;
-            const bars = Math.floor(w / 3);
+            const clipDuration = getClipDuration(clip);
 
-            for (let i = 0; i < bars; i++) {
-                const seed = Math.sin(i * 0.12) * Math.cos(i * 0.28) + 0.3;
-                const amplitude = Math.max(2, Math.abs(seed) * (h * 0.42));
-                const x = i * 3;
-                ctx.fillRect(x, mid - amplitude, 1.8, amplitude * 2);
+            let subOffset = 0;
+            clip.subsegments.forEach(seg => {
+                const startX = (subOffset / clipDuration) * w;
+                const endX = ((subOffset + seg.duration) / clipDuration) * w;
+
+                if (seg.type === 'speech') {
+                    // Draw speech wave peaks
+                    for (let x = startX; x < endX; x += 3) {
+                        const seed = Math.sin(x * 0.12) * Math.cos(x * 0.28) + 0.3;
+                        const amplitude = Math.max(2, Math.abs(seed) * (h * 0.42));
+                        ctx.fillRect(x, mid - amplitude, 1.8, amplitude * 2);
+                    }
+                } else if (seg.type === 'silence') {
+                    // Draw flat silence line
+                    ctx.fillStyle = '#115e59';
+                    ctx.fillRect(startX, mid - 1, endX - startX, 2);
+                    ctx.fillStyle = '#2dd4bf';
+                }
+                subOffset += seg.duration;
+            });
+        }
+
+        function selectClip(clipId) {
+            state.selectedClipId = clipId;
+            if (state.mode === 'clip') {
+                const target = state.clips.find(c => c.id === clipId);
+                sublineText.innerText = `Selected: ${target ? target.name : 'Clip'}`;
+                renderClips();
             }
         }
 
-        // --- 6. METRICS & STATS CALCULATION ---
+        // --- 6. METRICS & TIME DISPLAY ---
         function updateMetrics() {
-            const silenceSegs = state.segments.filter(s => s.type === 'silence');
-            const totalSilence = silenceSegs.reduce((acc, s) => acc + s.duration, 0);
-            const totalDuration = getTotalDuration();
-            const pctSaved = totalDuration > 0 ? ((totalSilence / totalDuration) * 100).toFixed(1) : 0;
+            let targetClips = (state.mode === 'clip') 
+                ? state.clips.filter(c => c.id === state.selectedClipId)
+                : state.clips;
 
-            metricGapsCount.innerText = `${silenceSegs.length} pauses`;
-            metricSilenceDuration.innerText = `${totalSilence.toFixed(1)}s`;
+            let silenceCount = 0;
+            let silenceDuration = 0;
+
+            targetClips.forEach(c => {
+                c.subsegments.forEach(s => {
+                    if (s.type === 'silence') {
+                        silenceCount++;
+                        silenceDuration += s.duration;
+                    }
+                });
+            });
+
+            const totalDuration = getTotalDuration();
+            const pctSaved = totalDuration > 0 ? ((silenceDuration / totalDuration) * 100).toFixed(1) : 0;
+
+            metricGapsCount.innerText = `${silenceCount} pauses`;
+            metricSilenceDuration.innerText = `${silenceDuration.toFixed(1)}s`;
             metricOrigDuration.innerText = formatTimecode(totalDuration).substring(3);
             metricTimeSaved.innerText = `${pctSaved}%`;
 
-            modalTimeRemoved.innerText = `${totalSilence.toFixed(1)} Seconds`;
+            modalTimeRemoved.innerText = `${silenceDuration.toFixed(1)} Seconds`;
             modalSpeedBoost.innerText = `+${pctSaved}% Faster`;
         }
 
-        // --- 7. PLAYBACK TRANSPORT LOOP ---
+        // --- 7. PLAYBACK TRANSPORT ---
         let lastTimestamp = 0;
 
         function playbackLoop(timestamp) {
@@ -1840,17 +1943,21 @@
             playheadLine.style.left = `calc(90px + ${pct}% * ((100% - 90px) / 100))`;
             timecodeDisplay.innerText = formatTimecode(state.currentTime);
 
+            // Check if current time is speech or silence
             let accum = 0;
-            let currentSeg = null;
-            for (let seg of state.segments) {
-                if (state.currentTime >= accum && state.currentTime <= accum + seg.duration) {
-                    currentSeg = seg;
-                    break;
+            let isSpeaking = false;
+            for (let clip of state.clips) {
+                for (let seg of clip.subsegments) {
+                    if (state.currentTime >= accum && state.currentTime <= accum + seg.duration) {
+                        isSpeaking = (seg.type === 'speech');
+                        break;
+                    }
+                    accum += seg.duration;
                 }
-                accum += seg.duration;
+                if (isSpeaking) break;
             }
 
-            if (currentSeg && currentSeg.type === 'speech') {
+            if (isSpeaking) {
                 speakingRing.classList.add('active');
                 videoStatusSub.className = 'video-status-subtitle';
                 videoStatusText.innerText = 'Active Dialogue';
@@ -1860,7 +1967,7 @@
             } else {
                 speakingRing.classList.remove('active');
                 videoStatusSub.className = 'video-status-subtitle deadair';
-                videoStatusText.innerText = state.isCut ? 'Seamless Transition' : '⚠️ Silent Pause (-inf dB)';
+                videoStatusText.innerText = '⚠️ Silent Pause (-inf dB)';
                 updateVUMeter(0.02);
                 playSynthSpeech(false);
             }
@@ -1885,40 +1992,25 @@
             }
         }
 
-        // --- 8. DIAL INTERACTIONS & DYNAMIC DETECTION ---
-        sliderThreshold.addEventListener('input', (e) => {
-            state.threshold = parseInt(e.target.value);
-            lblThreshold.innerText = `${state.threshold} dB`;
-            recalculateSilenceDetections();
-        });
-
-        sliderMinSilence.addEventListener('input', (e) => {
-            state.minSilence = parseFloat(e.target.value);
-            lblMinSilence.innerText = `${state.minSilence.toFixed(2)} s`;
-            recalculateSilenceDetections();
-        });
-
-        sliderPadding.addEventListener('input', (e) => {
-            state.padding = parseFloat(e.target.value);
-            lblPadding.innerText = `${state.padding.toFixed(2)} s`;
-            recalculateSilenceDetections();
-        });
-
-        function recalculateSilenceDetections() {
-            if (state.isCut) return;
-
-            const modFactor = (state.threshold + 50) / 35;
-            state.segments = BASE_SEGMENTS.map(s => {
-                if (s.type === 'silence') {
-                    const calculated = s.duration * (0.6 + modFactor * 0.8) - (state.padding * 2);
-                    return { ...s, duration: Math.max(state.minSilence, calculated) };
-                }
-                return { ...s };
-            });
-
+        // --- 8. MODE SWITCHING: "SELECTED CLIP" VS "WHOLE TIMELINE" ---
+        tabSelectedClip.addEventListener('click', () => {
+            state.mode = 'clip';
+            tabSelectedClip.classList.add('active');
+            tabWholeTimeline.classList.remove('active');
+            timelineModeHint.innerHTML = 'Mode: <b>Selected Clip</b> (Click on any clip on the timeline to target it)';
+            const target = state.clips.find(c => c.id === state.selectedClipId);
+            sublineText.innerText = `Mode: Target ${target ? target.name : 'selected clip'}`;
             renderClips();
-            sublineText.innerText = `Recalculated: ${state.segments.filter(s=>s.type==='silence').length} pauses at ${state.threshold} dB`;
-        }
+        });
+
+        tabWholeTimeline.addEventListener('click', () => {
+            state.mode = 'timeline';
+            tabWholeTimeline.classList.add('active');
+            tabSelectedClip.classList.remove('active');
+            timelineModeHint.innerHTML = 'Mode: <b>Whole Timeline</b> (Processes all 4 clips across the sequence)';
+            sublineText.innerText = 'Ready to cut whole sequence (all clips)';
+            renderClips();
+        });
 
         // Review Mode Toggle
         chkReviewMode.addEventListener('change', (e) => {
@@ -1936,14 +2028,26 @@
             }
         });
 
+        // Dials
+        sliderThreshold.addEventListener('input', (e) => {
+            state.threshold = parseInt(e.target.value);
+            lblThreshold.innerText = `${state.threshold} dB`;
+            updateMetrics();
+        });
+        sliderMinSilence.addEventListener('input', (e) => {
+            state.minSilence = parseFloat(e.target.value);
+            lblMinSilence.innerText = `${state.minSilence.toFixed(2)} s`;
+            updateMetrics();
+        });
+        sliderPadding.addEventListener('input', (e) => {
+            state.padding = parseFloat(e.target.value);
+            lblPadding.innerText = `${state.padding.toFixed(2)} s`;
+            updateMetrics();
+        });
+
         // --- 9. PRIMARY ACTION BUTTON (CUT / REVIEW) ---
         btnCutAction.addEventListener('click', () => {
             initAudio();
-
-            if (state.isCut) {
-                successModal.classList.add('active');
-                return;
-            }
 
             if (state.isReviewMode && !state.isMarked) {
                 executeMarkGaps();
@@ -1953,66 +2057,82 @@
         });
 
         function executeMarkGaps() {
+            state.showDetectedSilence = true;
             sublineDot.className = 'subline-dot busy';
-            sublineText.innerText = 'Scanning audio tracks for pauses...';
+            sublineText.innerText = (state.mode === 'clip') 
+                ? `Scanning selected clip ${state.selectedClipId}...`
+                : 'Scanning whole sequence across all tracks...';
             btnCutAction.disabled = true;
 
             setTimeout(() => {
-                sublineText.innerText = 'Markers placed on 5 silence gaps.';
+                sublineText.innerText = 'Silence gaps marked on timeline.';
                 sublineDot.className = 'subline-dot';
                 state.isMarked = true;
                 btnCutAction.disabled = false;
                 btnCutAction.className = 'btn-cut-action delete-state';
                 btnCutAction.innerHTML = '<span>🗑️ DELETE MARKED GAPS</span>';
-
-                document.querySelectorAll('.silence-gap-overlay').forEach(el => {
-                    el.style.background = 'repeating-linear-gradient(-45deg, #f59e0b, #f59e0b 6px, #d97706 6px, #d97706 12px)';
-                    el.style.boxShadow = '0 0 15px #f59e0b';
-                });
+                renderClips();
             }, 600);
         }
 
         function executeRippleCut() {
+            state.showDetectedSilence = true;
             sublineDot.className = 'subline-dot busy';
             btnCutAction.disabled = true;
 
-            // Step 1: Auto Sequence Backup
+            // Step 1: Premiere Sequence Auto-Backup
             sublineText.innerText = 'Creating sequence backup in Premiere...';
             backupToast.style.display = 'flex';
+            renderClips();
 
             setTimeout(() => {
-                sublineText.innerText = `Analyzing waveforms below ${state.threshold} dB...`;
-            }, 500);
-
-            setTimeout(() => {
-                sublineText.innerText = 'Ripple deleting dead air gaps...';
+                // Step 2: Analysis & Cut
+                sublineText.innerText = (state.mode === 'clip')
+                    ? `Ripple cutting selected Clip ${state.selectedClipId}...`
+                    : 'Ripple deleting dead air across all sequence clips...';
                 document.querySelectorAll('.silence-gap-overlay').forEach(el => el.classList.add('cut-active'));
                 playSnapSound();
-            }, 1000);
+            }, 650);
 
             setTimeout(() => {
-                state.segments = state.segments.filter(s => s.type !== 'silence');
-                state.isCut = true;
+                // Step 3: Remove silence from targeted clip(s)
+                if (state.mode === 'clip') {
+                    state.clips = state.clips.map(c => {
+                        if (c.id === state.selectedClipId) {
+                            return { ...c, isCut: true, subsegments: c.subsegments.filter(s => s.type !== 'silence') };
+                        }
+                        return c;
+                    });
+                } else {
+                    state.clips = state.clips.map(c => ({
+                        ...c,
+                        isCut: true,
+                        subsegments: c.subsegments.filter(s => s.type !== 'silence')
+                    }));
+                }
+
+                state.showDetectedSilence = false;
                 state.currentTime = 0;
                 renderClips();
 
                 sublineDot.className = 'subline-dot';
-                sublineText.innerText = 'COMPLETED! Sequence ripple-deleted seamlessly.';
+                sublineText.innerText = 'COMPLETED! Gaps ripple-deleted seamlessly.';
                 btnCutAction.disabled = false;
                 btnCutAction.className = 'btn-cut-action completed-state';
                 btnCutAction.innerHTML = '<span>COMPLETED!</span>';
 
+                // Pop success modal
                 setTimeout(() => {
                     successModal.classList.add('active');
                 }, 400);
 
-            }, 1400);
+            }, 1200);
         }
 
-        // --- 10. RESET / UNDO TIMELINE (Cmd+Z) ---
-        function resetTimeline() {
-            state.segments = JSON.parse(JSON.stringify(BASE_SEGMENTS));
-            state.isCut = false;
+        // --- 10. RESTART / RESET FUNCTIONALITY ---
+        function restartWholeTimeline() {
+            state.clips = JSON.parse(JSON.stringify(INITIAL_CLIPS));
+            state.showDetectedSilence = false;
             state.isMarked = false;
             state.currentTime = 0;
             backupToast.style.display = 'none';
@@ -2025,24 +2145,26 @@
                 btnCutAction.innerHTML = '<span>✂️ CUT DEAD AIR</span>';
             }
 
-            sublineText.innerText = 'Ready to analyze sequence';
+            sublineText.innerText = (state.mode === 'clip')
+                ? `Ready to cut Clip ${state.selectedClipId}`
+                : 'Ready to cut whole sequence';
+
+            playheadLine.style.left = '90px';
+            timecodeDisplay.innerText = '00:00:00:00';
+            updateVUMeter(0);
+            speakingRing.classList.remove('active');
             renderClips();
-            recalculateSilenceDetections();
         }
 
-        btnResetTimeline.addEventListener('click', resetTimeline);
+        btnResetTimeline.addEventListener('click', restartWholeTimeline);
 
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
-                e.preventDefault();
-                togglePlayPause();
-            } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
-                e.preventDefault();
-                resetTimeline();
-            }
+        // Modal "Test Timeline Again (Restart)" button
+        modalBtnRestart.addEventListener('click', () => {
+            successModal.classList.remove('active');
+            restartWholeTimeline();
         });
 
-        // Transport controls
+        // Transport Controls
         btnPlayPause.addEventListener('click', togglePlayPause);
         btnGoStart.addEventListener('click', () => { state.currentTime = 0; });
         btnStepBack.addEventListener('click', () => { state.currentTime = Math.max(0, state.currentTime - 1); });
@@ -2055,24 +2177,18 @@
             if (state.audioMuted) playSynthSpeech(false);
         });
 
-        // Modal close
-        modalBtnClose.addEventListener('click', () => {
-            successModal.classList.remove('active');
+        // Keyboard Shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlayPause();
+            } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                restartWholeTimeline();
+            }
         });
 
-        // Tabs toggle
-        document.getElementById('tabSelectedClip').addEventListener('click', function() {
-            this.classList.add('active');
-            document.getElementById('tabWholeTimeline').classList.remove('active');
-            sublineText.innerText = 'Mode: Cuts only selected clip on timeline';
-        });
-        document.getElementById('tabWholeTimeline').addEventListener('click', function() {
-            this.classList.add('active');
-            document.getElementById('tabSelectedClip').classList.remove('active');
-            sublineText.innerText = 'Mode: Cuts entire active sequence';
-        });
-
-        // Initial Render
+        // Initial Clean Render (No pre-highlighted yellow gaps!)
         renderClips();
     </script>
 </body>
