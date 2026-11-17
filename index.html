@@ -664,6 +664,17 @@
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
         }
 
+        .clip-status-tag.locked {
+            background: rgba(15, 23, 42, 0.9);
+            color: #94a3b8;
+            border: 1px solid #334155;
+        }
+
+        .timeline-clip.untouched-locked {
+            opacity: 0.55;
+            filter: grayscale(25%);
+        }
+
         .clip-v1 {
             background: linear-gradient(180deg, #2c5282 0%, #1e3a5f 100%);
             border-color: #4299e1;
@@ -1576,13 +1587,17 @@
 
     <script>
         // --- 1. MULTI-CLIP DATA MODEL (4 DISTINCT CLIPS) ---
-        // Each clip has speech chunks and internal silence pauses
+        // Each clip has explicit start time and duration on the timeline
+        const BASE_SEQUENCE_DURATION = 105; // 105s master timeline scale
+
         const INITIAL_CLIPS = [
             {
                 id: 1,
                 name: 'Clip_01_Intro',
                 videoName: 'Cam_A_Intro.mp4',
                 audioName: '🎙️ Voice_01.wav',
+                start: 0,
+                duration: 24.0,
                 isCut: false,
                 subsegments: [
                     { type: 'speech', duration: 8.5 },
@@ -1595,11 +1610,13 @@
                 name: 'Clip_02_Workflow',
                 videoName: 'Cam_A_Workflow.mp4',
                 audioName: '🎙️ Voice_02.wav',
+                start: 26.0,
+                duration: 25.0,
                 isCut: false,
                 subsegments: [
                     { type: 'speech', duration: 9.0 },
                     { type: 'silence', duration: 5.0 },
-                    { type: 'speech', duration: 13.0 }
+                    { type: 'speech', duration: 11.0 }
                 ]
             },
             {
@@ -1607,11 +1624,13 @@
                 name: 'Clip_03_ManualPain',
                 videoName: 'Cam_A_ManualPain.mp4',
                 audioName: '🎙️ Voice_03.wav',
+                start: 53.0,
+                duration: 24.0,
                 isCut: false,
                 subsegments: [
                     { type: 'speech', duration: 8.0 },
                     { type: 'silence', duration: 4.8 },
-                    { type: 'speech', duration: 12.5 }
+                    { type: 'speech', duration: 11.2 }
                 ]
             },
             {
@@ -1619,16 +1638,16 @@
                 name: 'Clip_04_DeadAirFix',
                 videoName: 'Cam_A_DeadAirFix.mp4',
                 audioName: '🎙️ Voice_04.wav',
+                start: 79.0,
+                duration: 24.0,
                 isCut: false,
                 subsegments: [
                     { type: 'speech', duration: 9.5 },
                     { type: 'silence', duration: 5.5 },
-                    { type: 'speech', duration: 11.5 }
+                    { type: 'speech', duration: 9.0 }
                 ]
             }
         ];
-
-        const BASE_SEQUENCE_DURATION = 105; // Fixed 105-second sequence coordinate system
 
         let state = {
             mode: 'clip', // Default to 'clip' mode so clicking clips immediately targets them
@@ -1785,14 +1804,6 @@
         }
 
         // --- 5. TIMELINE RENDERING & SELECTION ---
-        function getClipDuration(clip) {
-            return clip.subsegments.reduce((acc, s) => acc + s.duration, 0);
-        }
-
-        function getTotalDuration() {
-            return state.clips.reduce((acc, c) => acc + getClipDuration(c), 0);
-        }
-
         function formatTimecode(seconds) {
             const m = Math.floor(seconds / 60);
             const s = Math.floor(seconds % 60);
@@ -1825,40 +1836,43 @@
             laneV1.innerHTML = '';
             laneA1.innerHTML = '';
 
-            let currentOffset = 0;
-
             state.clips.forEach((clip) => {
-                const clipDuration = getClipDuration(clip);
-                const startPct = (currentOffset / BASE_SEQUENCE_DURATION) * 100;
-                const widthPct = (clipDuration / BASE_SEQUENCE_DURATION) * 100;
+                const startPct = (clip.start / BASE_SEQUENCE_DURATION) * 100;
+                const widthPct = (clip.duration / BASE_SEQUENCE_DURATION) * 100;
 
                 const isSelected = (state.mode === 'clip' && clip.id === state.selectedClipId);
+                const isOtherLocked = (state.mode === 'clip' && clip.id !== state.selectedClipId);
 
                 // Calculate remaining silence inside this clip
                 const remainingSilence = clip.subsegments
                     .filter(s => s.type === 'silence')
                     .reduce((a, s) => a + s.duration, 0);
 
-                // Render V1 Video Clip
-                const vClip = document.createElement('div');
-                vClip.className = `timeline-clip clip-v1 ${isSelected ? 'selected' : ''} ${clip.isCut ? 'cut-completed' : ''}`;
-                vClip.setAttribute('data-clip-id', clip.id);
-                vClip.style.left = `${startPct}%`;
-                vClip.style.width = `calc(${widthPct}% - 2px)`;
-                
                 let tagText = '';
                 let tagClass = '';
+                const orig = INITIAL_CLIPS.find(c => c.id === clip.id);
+                const diff = orig ? (orig.duration - clip.duration) : 0;
+
                 if (clip.isCut) {
-                    tagText = '✓ CUT';
+                    tagText = `✓ CUT (-${diff.toFixed(1)}s)`;
                     tagClass = 'cut';
                 } else if (isSelected) {
-                    tagText = '🎯 TARGET';
+                    tagText = '🎯 TARGET CLIP';
                     tagClass = 'selected-tag';
+                } else if (state.mode === 'clip') {
+                    tagText = '🔒 UNTOUCHED';
+                    tagClass = 'locked';
                 } else {
                     tagText = `${remainingSilence.toFixed(1)}s GAP`;
                     tagClass = 'uncut';
                 }
 
+                // Render V1 Video Clip
+                const vClip = document.createElement('div');
+                vClip.className = `timeline-clip clip-v1 ${isSelected ? 'selected' : ''} ${isOtherLocked ? 'untouched-locked' : ''} ${clip.isCut ? 'cut-completed' : ''}`;
+                vClip.setAttribute('data-clip-id', clip.id);
+                vClip.style.left = `${startPct}%`;
+                vClip.style.width = `calc(${widthPct}% - 2px)`;
                 vClip.innerHTML = `
                     <div class="clip-title-label">${clip.videoName}</div>
                     <span class="clip-status-tag ${tagClass}">${tagText}</span>
@@ -1868,7 +1882,7 @@
 
                 // Render A1 Audio Clip
                 const aClip = document.createElement('div');
-                aClip.className = `timeline-clip clip-a1 ${isSelected ? 'selected' : ''} ${clip.isCut ? 'cut-completed' : ''}`;
+                aClip.className = `timeline-clip clip-a1 ${isSelected ? 'selected' : ''} ${isOtherLocked ? 'untouched-locked' : ''} ${clip.isCut ? 'cut-completed' : ''}`;
                 aClip.setAttribute('data-clip-id', clip.id);
                 aClip.style.left = `${startPct}%`;
                 aClip.style.width = `calc(${widthPct}% - 2px)`;
@@ -1883,14 +1897,14 @@
                 setTimeout(() => drawWaveform(aClip.querySelector('canvas'), clip), 20);
 
                 // Silence gap overlays:
-                // When active, show ONLY on the targeted clip(s)!
+                // In Selected Clip mode: ONLY show on target clip!
                 const isTargetClip = (state.mode === 'timeline') || (state.mode === 'clip' && clip.id === state.selectedClipId);
                 if (state.showDetectedSilence && isTargetClip && !clip.isCut) {
                     let subOffset = 0;
                     clip.subsegments.forEach((seg) => {
                         if (seg.type === 'silence') {
-                            const gapLeftPct = (subOffset / clipDuration) * 100;
-                            const gapWidthPct = (seg.duration / clipDuration) * 100;
+                            const gapLeftPct = (subOffset / clip.duration) * 100;
+                            const gapWidthPct = (seg.duration / clip.duration) * 100;
 
                             const gap = document.createElement('div');
                             gap.className = 'silence-gap-overlay';
@@ -1902,8 +1916,6 @@
                         subOffset += seg.duration;
                     });
                 }
-
-                currentOffset += clipDuration;
             });
 
             renderRuler();
@@ -1922,13 +1934,12 @@
             ctx.fillStyle = '#2dd4bf';
 
             const mid = h / 2;
-            const clipDuration = getClipDuration(clip);
-            if (clipDuration <= 0) return;
+            if (clip.duration <= 0) return;
 
             let subOffset = 0;
             clip.subsegments.forEach(seg => {
-                const startX = (subOffset / clipDuration) * w;
-                const endX = ((subOffset + seg.duration) / clipDuration) * w;
+                const startX = (subOffset / clip.duration) * w;
+                const endX = ((subOffset + seg.duration) / clip.duration) * w;
 
                 if (seg.type === 'speech') {
                     // Draw speech wave peaks
@@ -1956,7 +1967,7 @@
             tabWholeTimeline.classList.remove('active');
 
             const target = state.clips.find(c => c.id === clipId);
-            timelineModeHint.innerHTML = `Mode: <b>Selected Clip: ${target ? target.name : 'Clip'}</b> (Click any clip to target)`;
+            timelineModeHint.innerHTML = `Mode: <b>Selected Clip: ${target ? target.name : 'Clip'}</b> (Other clips stay locked)`;
             
             updateMetrics();
             renderClips();
@@ -1977,30 +1988,31 @@
                     }
                 });
 
-                const clipDur = getClipDuration(target);
-                const pctSaved = clipDur > 0 ? ((silenceDuration / clipDur) * 100).toFixed(1) : 0;
+                const orig = INITIAL_CLIPS.find(c => c.id === target.id);
+                const origDur = orig ? orig.duration : target.duration;
+                const pctSaved = origDur > 0 ? ((silenceDuration / origDur) * 100).toFixed(1) : 0;
 
                 metricGapsCount.innerText = `${silenceCount} pause${silenceCount === 1 ? '' : 's'}`;
                 metricSilenceDuration.innerText = `${silenceDuration.toFixed(1)}s`;
-                metricOrigDuration.innerText = formatTimecode(clipDur).substring(3);
+                metricOrigDuration.innerText = formatTimecode(target.duration).substring(3);
                 metricTimeSaved.innerText = `${pctSaved}%`;
 
                 const shortName = target.name.split('_')[0] + '_' + target.name.split('_')[1];
 
                 if (target.isCut) {
                     btnCutAction.className = 'btn-cut-action completed-state';
-                    btnCutAction.innerHTML = `<span>✓ ${shortName} CLEAN</span>`;
-                    sublineText.innerText = `${target.name} has no dead air remaining`;
+                    btnCutAction.innerHTML = `<span>✓ ${shortName} ALREADY CLEAN</span>`;
+                    sublineText.innerText = `${target.name} has no dead air remaining. Other clips untouched.`;
                     sublineDot.className = 'subline-dot';
                 } else if (state.isReviewMode) {
                     btnCutAction.className = 'btn-cut-action review-state';
-                    btnCutAction.innerHTML = `<span>🔍 MARK GAPS IN ${shortName}</span>`;
-                    sublineText.innerText = `Review Mode: Ready to mark silence in ${target.name}`;
+                    btnCutAction.innerHTML = `<span>🔍 MARK SILENCE IN ${shortName}</span>`;
+                    sublineText.innerText = `Review Mode: Ready to mark silence in ${target.name} only`;
                     sublineDot.className = 'subline-dot';
                 } else {
                     btnCutAction.className = 'btn-cut-action';
-                    btnCutAction.innerHTML = `<span>✂️ CUT ${shortName} DEAD AIR</span>`;
-                    sublineText.innerText = `Ready to cut ${target.name} (${silenceDuration.toFixed(1)}s dead air)`;
+                    btnCutAction.innerHTML = `<span>✂️ CUT ONLY ${shortName.toUpperCase()} (PRESERVE SYNC)</span>`;
+                    sublineText.innerText = `Target: ${target.name} only (${silenceDuration.toFixed(1)}s silence). Other clips stay locked.`;
                     sublineDot.className = 'subline-dot';
                 }
             } else {
@@ -2016,12 +2028,12 @@
                     });
                 });
 
-                const totalDuration = getTotalDuration();
-                const pctSaved = totalDuration > 0 ? ((silenceDuration / totalDuration) * 100).toFixed(1) : 0;
+                const totalSequenceDur = state.clips.reduce((a, c) => a + c.duration, 0);
+                const pctSaved = totalSequenceDur > 0 ? ((silenceDuration / totalSequenceDur) * 100).toFixed(1) : 0;
 
                 metricGapsCount.innerText = `${silenceCount} pause${silenceCount === 1 ? '' : 's'}`;
                 metricSilenceDuration.innerText = `${silenceDuration.toFixed(1)}s`;
-                metricOrigDuration.innerText = formatTimecode(totalDuration).substring(3);
+                metricOrigDuration.innerText = formatTimecode(totalSequenceDur).substring(3);
                 metricTimeSaved.innerText = `${pctSaved}%`;
 
                 if (silenceCount === 0) {
@@ -2036,8 +2048,8 @@
                     sublineDot.className = 'subline-dot';
                 } else {
                     btnCutAction.className = 'btn-cut-action';
-                    btnCutAction.innerHTML = '<span>✂️ CUT WHOLE SEQUENCE</span>';
-                    sublineText.innerText = `Ready to cut ${silenceCount} pauses across all sequence clips`;
+                    btnCutAction.innerHTML = '<span>✂️ RIPPLE CUT ENTIRE TIMELINE (ALL 4 CLIPS)</span>';
+                    sublineText.innerText = `Ready to ripple delete ${silenceCount} pauses across all sequence clips`;
                     sublineDot.className = 'subline-dot';
                 }
             }
@@ -2054,9 +2066,7 @@
             lastTimestamp = timestamp;
 
             state.currentTime += delta;
-            const currentTotal = getTotalDuration();
-
-            if (state.currentTime >= currentTotal) {
+            if (state.currentTime >= BASE_SEQUENCE_DURATION) {
                 state.currentTime = 0;
             }
 
@@ -2064,18 +2074,21 @@
             playheadLine.style.left = `calc(90px + ${pct}% * ((100% - 90px) / 100))`;
             timecodeDisplay.innerText = formatTimecode(state.currentTime);
 
-            // Check if current time is speech or silence
-            let accum = 0;
+            // Determine if current playhead position is inside speech or silence
             let isSpeaking = false;
             for (let clip of state.clips) {
-                for (let seg of clip.subsegments) {
-                    if (state.currentTime >= accum && state.currentTime <= accum + seg.duration) {
-                        isSpeaking = (seg.type === 'speech');
-                        break;
+                if (state.currentTime >= clip.start && state.currentTime < clip.start + clip.duration) {
+                    const offsetInClip = state.currentTime - clip.start;
+                    let accum = 0;
+                    for (let seg of clip.subsegments) {
+                        if (offsetInClip >= accum && offsetInClip < accum + seg.duration) {
+                            isSpeaking = (seg.type === 'speech');
+                            break;
+                        }
+                        accum += seg.duration;
                     }
-                    accum += seg.duration;
+                    break;
                 }
-                if (isSpeaking) break;
             }
 
             if (isSpeaking) {
@@ -2119,7 +2132,7 @@
             tabSelectedClip.classList.add('active');
             tabWholeTimeline.classList.remove('active');
             const target = state.clips.find(c => c.id === state.selectedClipId);
-            timelineModeHint.innerHTML = `Mode: <b>Selected Clip: ${target ? target.name : 'Clip'}</b> (Click any clip on timeline to target)`;
+            timelineModeHint.innerHTML = `Mode: <b>Selected Clip: ${target ? target.name : 'Clip'}</b> (Other clips stay locked)`;
             updateMetrics();
             renderClips();
         });
@@ -2128,7 +2141,7 @@
             state.mode = 'timeline';
             tabWholeTimeline.classList.add('active');
             tabSelectedClip.classList.remove('active');
-            timelineModeHint.innerHTML = 'Mode: <b>Whole Timeline</b> (Processes all clips across sequence)';
+            timelineModeHint.innerHTML = 'Mode: <b>Whole Timeline</b> (Ripple deletes across entire sequence)';
             updateMetrics();
             renderClips();
         });
@@ -2185,14 +2198,14 @@
 
             setTimeout(() => {
                 sublineText.innerText = isClipMode
-                    ? `Silence gaps marked in ${target.name}.`
-                    : 'Silence gaps marked across all clips.';
+                    ? `Silence gaps marked in ${target.name}. Other clips locked.`
+                    : 'Silence gaps marked across all sequence clips.';
                 sublineDot.className = 'subline-dot';
                 state.isMarked = true;
                 btnCutAction.disabled = false;
                 btnCutAction.className = 'btn-cut-action delete-state';
                 btnCutAction.innerHTML = isClipMode
-                    ? `<span>🗑️ DELETE GAPS IN ${shortName}</span>`
+                    ? `<span>🗑️ DELETE GAPS IN ${shortName.toUpperCase()}</span>`
                     : '<span>🗑️ DELETE ALL MARKED GAPS</span>';
             }, 600);
         }
@@ -2206,16 +2219,16 @@
             const targetClip = state.clips.find(c => c.id === state.selectedClipId);
             const shortName = targetClip ? (targetClip.name.split('_')[0] + '_' + targetClip.name.split('_')[1]) : 'Clip';
 
-            // Step 1: Premiere Sequence Auto-Backup
+            // Step 1: Premiere Sequence Auto-Backup Toast
             sublineText.innerText = 'Creating sequence backup in Premiere...';
             backupToast.style.display = 'flex';
             renderClips();
 
             setTimeout(() => {
-                // Step 2: Cut animation on targeted clip(s)
+                // Step 2: Cut animation ONLY on targeted clip(s)
                 sublineText.innerText = isClipMode
-                    ? `Ripple cutting silence in ${targetClip.name}...`
-                    : 'Ripple deleting dead air across all sequence clips...';
+                    ? `Cutting dead air in ${targetClip.name} only (sync preserved)...`
+                    : 'Ripple deleting dead air across entire sequence...';
 
                 if (isClipMode) {
                     const targetEls = document.querySelectorAll(`.timeline-clip[data-clip-id="${state.selectedClipId}"]`);
@@ -2233,7 +2246,10 @@
                 let removedSilenceSec = 0;
 
                 if (isClipMode) {
-                    const beforeDur = getClipDuration(targetClip);
+                    // SELECTED CLIP MODE:
+                    // ONLY targetClip is cut and shortened.
+                    // ALL OTHER CLIPS REMAIN EXACTLY AT THEIR START TIMECODE (NO SHIFTING)!
+                    const beforeDur = targetClip.duration;
                     targetClip.subsegments.forEach(s => {
                         if (s.type === 'silence') {
                             removedSilenceSec += s.duration;
@@ -2245,39 +2261,47 @@
                             return {
                                 ...c,
                                 isCut: true,
+                                duration: c.duration - removedSilenceSec,
                                 subsegments: c.subsegments.filter(s => s.type !== 'silence')
                             };
                         }
-                        return c; // ALL OTHER CLIPS REMAIN EXACTLY UNCHANGED!
+                        // Other clips stay exactly as they are!
+                        return c;
                     });
 
                     const boost = beforeDur > 0 ? ((removedSilenceSec / beforeDur) * 100).toFixed(0) : 0;
-                    modalTitle.innerText = `Dead Air Cut from ${targetClip.name}!`;
-                    modalDesc.innerHTML = `DeadAir backed up your sequence and automatically ripple-deleted <b>${removedSilenceSec.toFixed(1)}s</b> of silence from <b>${targetClip.name}</b>.<br><span style="color:#94a3b8;font-size:11.5px;">Clip 1, Clip 3, and Clip 4 remain untouched on your timeline with their original audio.</span>`;
+                    modalTitle.innerText = `${targetClip.name} Cut Successfully!`;
+                    modalDesc.innerHTML = `DeadAir removed <b>${removedSilenceSec.toFixed(1)}s</b> of dead air from <b>${targetClip.name}</b> only.<br><br><span style="color:#38bdf8;font-weight:700;">Timeline Sync Preserved:</span> <span style="color:#cbd5e1;">Clips 1, 3, and 4 were NOT cut and remained 100% locked in place on your timeline.</span>`;
                     modalTimeRemoved.innerText = `${removedSilenceSec.toFixed(1)} Seconds`;
                     modalSpeedBoost.innerText = `+${boost}% in ${shortName}`;
 
                 } else {
-                    const beforeTotal = getTotalDuration();
-                    state.clips.forEach(c => {
+                    // WHOLE TIMELINE MODE:
+                    // Processes all clips and ripple deletes gaps between them!
+                    let currentOffset = 0;
+                    state.clips = state.clips.map(c => {
+                        let clipSilence = 0;
                         c.subsegments.forEach(s => {
-                            if (s.type === 'silence') {
-                                removedSilenceSec += s.duration;
-                            }
+                            if (s.type === 'silence') clipSilence += s.duration;
                         });
+                        removedSilenceSec += clipSilence;
+
+                        const newDur = c.duration - clipSilence;
+                        const updatedClip = {
+                            ...c,
+                            isCut: true,
+                            start: currentOffset,
+                            duration: newDur,
+                            subsegments: c.subsegments.filter(s => s.type !== 'silence')
+                        };
+                        currentOffset += newDur;
+                        return updatedClip;
                     });
 
-                    state.clips = state.clips.map(c => ({
-                        ...c,
-                        isCut: true,
-                        subsegments: c.subsegments.filter(s => s.type !== 'silence')
-                    }));
-
-                    const boost = beforeTotal > 0 ? ((removedSilenceSec / beforeTotal) * 100).toFixed(0) : 0;
                     modalTitle.innerText = 'Dead Air Cut Across Entire Sequence!';
-                    modalDesc.innerHTML = `DeadAir backed up your sequence and automatically ripple-deleted <b>${removedSilenceSec.toFixed(1)}s</b> of silent pauses across all clips in your sequence.`;
+                    modalDesc.innerHTML = `DeadAir backed up your sequence and automatically ripple-deleted <b>${removedSilenceSec.toFixed(1)}s</b> of silent pauses across all clips in your sequence into a tight edit.`;
                     modalTimeRemoved.innerText = `${removedSilenceSec.toFixed(1)} Seconds`;
-                    modalSpeedBoost.innerText = `+${boost}% Faster`;
+                    modalSpeedBoost.innerText = `+${((removedSilenceSec / 97.0) * 100).toFixed(0)}% Faster`;
                 }
 
                 state.showDetectedSilence = false;
@@ -2327,7 +2351,7 @@
             const rect = timelineRuler.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const pct = Math.max(0, Math.min(1, clickX / rect.width));
-            state.currentTime = Math.min(getTotalDuration(), pct * BASE_SEQUENCE_DURATION);
+            state.currentTime = pct * BASE_SEQUENCE_DURATION;
             const playheadPct = (state.currentTime / BASE_SEQUENCE_DURATION) * 100;
             playheadLine.style.left = `calc(90px + ${playheadPct}% * ((100% - 90px) / 100))`;
             timecodeDisplay.innerText = formatTimecode(state.currentTime);
@@ -2337,7 +2361,7 @@
         btnPlayPause.addEventListener('click', togglePlayPause);
         btnGoStart.addEventListener('click', () => { state.currentTime = 0; });
         btnStepBack.addEventListener('click', () => { state.currentTime = Math.max(0, state.currentTime - 1); });
-        btnStepForward.addEventListener('click', () => { state.currentTime = Math.min(getTotalDuration(), state.currentTime + 1); });
+        btnStepForward.addEventListener('click', () => { state.currentTime = Math.min(BASE_SEQUENCE_DURATION, state.currentTime + 1); });
 
         // Audio Mute toggle
         btnAudioMute.addEventListener('click', () => {
