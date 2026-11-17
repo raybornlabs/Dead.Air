@@ -1,0 +1,2079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeadAir — Interactive Adobe Premiere Pro Simulator Demo</title>
+    <style>
+        :root {
+            --pr-bg: #1e1e1e;
+            --pr-panel-bg: #181818;
+            --pr-panel-header: #232323;
+            --pr-border: #2d2d2d;
+            --pr-border-light: #3a3a3a;
+            --pr-blue: #2563eb;
+            --pr-blue-hover: #1d4ed8;
+            --pr-text: #e2e8f0;
+            --pr-text-dim: #94a3b8;
+            --pr-text-muted: #64748b;
+            --clip-video: #2c5282;
+            --clip-video-border: #4299e1;
+            --clip-audio: #1a4f44;
+            --clip-audio-border: #38b2ac;
+            --clip-music: #4a2870;
+            --clip-music-border: #9f7aea;
+            --silence-glow: rgba(245, 158, 11, 0.4);
+            --silence-stripe: #b45309;
+            --playhead-red: #ef4444;
+            --emerald: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0f0f11;
+            color: var(--pr-text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* --- TOP GLOBAL CALL-TO-ACTION BAR --- */
+        .cta-header-bar {
+            background: linear-gradient(90deg, #0b0f19 0%, #1e1b4b 50%, #0b0f19 100%);
+            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+            padding: 8px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            z-index: 100;
+        }
+
+        .cta-brand-tag {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .cta-brand-pill {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--emerald);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .cta-center-msg {
+            color: #cbd5e1;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cta-center-msg span {
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        .cta-buy-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .cta-buy-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+        }
+
+        /* --- PREMIERE PRO SIMULATOR WINDOW --- */
+        .pr-window-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--pr-bg);
+            margin: 10px 14px 14px 14px;
+            border-radius: 8px;
+            border: 1px solid #333338;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+        }
+
+        /* Premiere App Title Bar */
+        .pr-titlebar {
+            background: #141416;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            border-bottom: 1px solid var(--pr-border);
+            font-size: 11px;
+            color: var(--pr-text-dim);
+        }
+
+        .pr-window-controls {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .win-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .dot-red { background: #ff5f56; }
+        .dot-yellow { background: #ffbd2e; }
+        .dot-green { background: #27c93f; }
+
+        .pr-app-title {
+            font-weight: 600;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pr-app-badge {
+            background: #00005b;
+            color: #9999ff;
+            font-weight: 900;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .pr-menu-bar {
+            display: flex;
+            gap: 14px;
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        .pr-menu-item:hover {
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        .pr-workspaces-bar {
+            background: #1c1c1f;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 16px;
+            border-bottom: 1px solid var(--pr-border);
+            font-size: 11px;
+        }
+
+        .ws-tab {
+            color: var(--pr-text-dim);
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 3px;
+        }
+        .ws-tab.active {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+            font-weight: 600;
+        }
+
+        /* --- PREMIERE MAIN WORKSPACE GRID --- */
+        .pr-workspace-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 310px;
+            grid-template-rows: 240px 1fr;
+            gap: 4px;
+            background: #141416;
+            padding: 4px;
+            min-height: 600px;
+        }
+
+        /* Top-Left: Program Monitor */
+        .pr-program-monitor {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
+            background: var(--pr-panel-bg);
+            border: 1px solid var(--pr-border);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-tab-bar {
+            background: var(--pr-panel-header);
+            height: 26px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            border-bottom: 1px solid var(--pr-border);
+            font-size: 11px;
+            font-weight: 600;
+            color: #cbd5e1;
+            gap: 10px;
+        }
+
+        .panel-tab-active {
+            border-bottom: 2px solid var(--pr-blue);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            color: #ffffff;
+        }
+
+        .monitor-stage-container {
+            flex: 1;
+            background: #09090b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Simulated Video Screen */
+        .simulated-video-screen {
+            width: 380px;
+            height: 160px;
+            background: radial-gradient(circle at center, #1e1e2f 0%, #0a0a10 100%);
+            border: 1px solid #33333e;
+            border-radius: 6px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .video-speaker-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .speaking-ring {
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid #10b981;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        .speaking-ring.active {
+            opacity: 1;
+            animation: pulse-ring 1s infinite cubic-bezier(0.4, 0, 0.6, 1);
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 0.3; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        .video-title-caption {
+            font-size: 11px;
+            font-weight: 700;
+            color: #f1f5f9;
+            letter-spacing: 0.5px;
+        }
+
+        .video-status-subtitle {
+            font-size: 9.5px;
+            font-weight: 600;
+            color: var(--emerald);
+            margin-top: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .video-status-subtitle.deadair {
+            color: #f59e0b;
+        }
+
+        /* Audio VU Meter (Right edge of monitor) */
+        .vu-meter-bar {
+            position: absolute;
+            right: 14px;
+            top: 20px;
+            bottom: 20px;
+            width: 14px;
+            background: #111114;
+            border: 1px solid #2e2e36;
+            border-radius: 3px;
+            display: flex;
+            gap: 2px;
+            padding: 2px;
+        }
+
+        .vu-channel {
+            flex: 1;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 1px;
+            overflow: hidden;
+        }
+
+        .vu-segment {
+            height: 3px;
+            border-radius: 1px;
+            background: #222228;
+            transition: background 0.05s ease;
+        }
+        .vu-segment.lit-green { background: #10b981; box-shadow: 0 0 3px #10b981; }
+        .vu-segment.lit-yellow { background: #f59e0b; box-shadow: 0 0 3px #f59e0b; }
+        .vu-segment.lit-red { background: #ef4444; box-shadow: 0 0 4px #ef4444; }
+
+        /* Monitor Control Strip */
+        .monitor-controls-strip {
+            height: 32px;
+            background: var(--pr-panel-header);
+            border-top: 1px solid var(--pr-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+        }
+
+        .timecode-display {
+            font-family: "JetBrains Mono", monospace, "Courier New";
+            font-size: 13px;
+            font-weight: 700;
+            color: #38bdf8;
+            background: #0f172a;
+            padding: 2px 8px;
+            border-radius: 3px;
+            border: 1px solid #1e293b;
+        }
+
+        .playback-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .transport-btn {
+            background: #2a2a30;
+            border: 1px solid #3e3e48;
+            color: #cbd5e1;
+            width: 26px;
+            height: 22px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.1s ease;
+        }
+
+        .transport-btn:hover {
+            background: #3e3e48;
+            color: #ffffff;
+        }
+
+        .transport-btn.btn-play {
+            width: 50px;
+            background: #1e3a8a;
+            border-color: #3b82f6;
+            color: #ffffff;
+            font-weight: 700;
+        }
+        .transport-btn.btn-play:hover {
+            background: #2563eb;
+        }
+
+        /* --- BOTTOM-LEFT: PREMIERE TIMELINE --- */
+        .pr-timeline-panel {
+            grid-column: 1 / 2;
+            grid-row: 2 / 3;
+            background: var(--pr-panel-bg);
+            border: 1px solid var(--pr-border);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-tab-bar {
+            background: var(--pr-panel-header);
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            border-bottom: 1px solid var(--pr-border);
+            font-size: 11px;
+        }
+
+        .timeline-tab-title {
+            color: #ffffff;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .timeline-backup-toast {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9.5px;
+            font-weight: 700;
+            display: none;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Timeline Header Ruler & Time scale */
+        .timeline-ruler {
+            height: 22px;
+            background: #1a1a1d;
+            border-bottom: 1px solid var(--pr-border);
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin-left: 90px;
+            font-size: 9px;
+            font-family: monospace;
+            color: var(--pr-text-muted);
+            overflow: hidden;
+        }
+
+        .ruler-tick {
+            position: absolute;
+            bottom: 0;
+            width: 1px;
+            background: #333338;
+            height: 6px;
+        }
+        .ruler-tick.major {
+            height: 12px;
+            background: #555560;
+        }
+        .ruler-label {
+            position: absolute;
+            top: 2px;
+            font-size: 8.5px;
+            transform: translateX(-50%);
+        }
+
+        /* Playhead Cursor (Red Line) */
+        .timeline-playhead-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1.5px;
+            background: var(--playhead-red);
+            z-index: 50;
+            pointer-events: none;
+            left: 90px;
+            transition: left 0.05s linear;
+        }
+
+        .playhead-handle {
+            position: absolute;
+            top: 0;
+            left: -6px;
+            width: 14px;
+            height: 12px;
+            background: var(--playhead-red);
+            clip-path: polygon(0% 0%, 100% 0%, 100% 60%, 50% 100%, 0% 60%);
+        }
+
+        /* Tracks Container */
+        .tracks-viewport {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: #121214;
+        }
+
+        .track-row {
+            display: flex;
+            height: 48px;
+            border-bottom: 1px solid #25252b;
+            position: relative;
+        }
+        .track-row.audio-track {
+            height: 68px;
+        }
+
+        /* Track Headers (Left column) */
+        .track-header {
+            width: 90px;
+            background: #18181b;
+            border-right: 1px solid var(--pr-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4px 8px;
+            font-size: 10px;
+            color: #94a3b8;
+            gap: 4px;
+            z-index: 10;
+        }
+
+        .track-header-title {
+            font-weight: 700;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .track-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .trk-btn {
+            width: 14px;
+            height: 14px;
+            font-size: 8px;
+            font-weight: 800;
+            border-radius: 2px;
+            background: #26262e;
+            border: 1px solid #3e3e48;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .trk-btn.active {
+            background: var(--pr-blue);
+            color: #fff;
+        }
+
+        /* Track Content Lane */
+        .track-lane {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: #141416;
+            overflow: hidden;
+        }
+
+        /* Timeline Clips */
+        .timeline-clip {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            border-radius: 3px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 3px 6px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+        }
+
+        .clip-v1 {
+            background: linear-gradient(180deg, #2c5282 0%, #1e3a5f 100%);
+            border-color: #4299e1;
+            color: #e2e8f0;
+        }
+
+        .clip-a1 {
+            background: linear-gradient(180deg, #134e4a 0%, #0f3633 100%);
+            border-color: #2dd4bf;
+            color: #ccfbf1;
+        }
+
+        .clip-a2 {
+            background: linear-gradient(180deg, #4c1d95 0%, #2e1065 100%);
+            border-color: #a855f7;
+            color: #f3e8ff;
+        }
+
+        .clip-title-label {
+            font-size: 9px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 2;
+        }
+
+        /* Waveform Canvas */
+        .waveform-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.85;
+        }
+
+        /* Dead Air Silence Gap Highlight Overlay */
+        .silence-gap-overlay {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            background: repeating-linear-gradient(
+                -45deg,
+                rgba(245, 158, 11, 0.18),
+                rgba(245, 158, 11, 0.18) 6px,
+                rgba(245, 158, 11, 0.32) 6px,
+                rgba(245, 158, 11, 0.32) 12px
+            );
+            border: 1px dashed rgba(245, 158, 11, 0.8);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            transition: all 0.35s ease;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+        }
+
+        .silence-gap-label {
+            background: rgba(0, 0, 0, 0.75);
+            color: #fbbf24;
+            font-size: 8px;
+            font-weight: 800;
+            padding: 1px 4px;
+            border-radius: 2px;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(245, 158, 11, 0.5);
+            pointer-events: none;
+        }
+
+        .silence-gap-overlay.cut-active {
+            background: rgba(16, 185, 129, 0.3);
+            border-color: #10b981;
+            transform: scaleY(0);
+            opacity: 0;
+        }
+
+        /* --- RIGHT PANEL: DOCKED DEADAIR EXTENSION --- */
+        .pr-plugin-dock {
+            grid-column: 2 / 3;
+            grid-row: 1 / 3;
+            background: #141417;
+            border: 1px solid #2e2e36;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .panel-brand-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: #18181c;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .brand-meta {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .brand-logo-sq {
+            width: 24px;
+            height: 24px;
+            background: #111114;
+            border: 1px solid #33333e;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 12px;
+            color: var(--emerald);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .brand-title-wrap {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1;
+        }
+
+        .brand-name {
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 1.2px;
+            color: #f8fafc;
+        }
+
+        .brand-author {
+            font-size: 7.5px;
+            font-weight: 700;
+            color: #64748b;
+            letter-spacing: 0.8px;
+        }
+
+        .license-status-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 8.5px;
+            font-weight: 700;
+            color: var(--emerald);
+        }
+
+        .status-dot-green {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 6px #10b981;
+        }
+
+        .plugin-body-content {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Selection Mode Tabs */
+        .plugin-mode-tabs {
+            display: flex;
+            background: #111113;
+            border: 1px solid #282830;
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .plugin-tab-btn {
+            flex: 1;
+            padding: 5px 0;
+            background: transparent;
+            border: none;
+            color: var(--pr-text-dim);
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+
+        .plugin-tab-btn.active {
+            background: var(--pr-blue);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Precision Dials Card */
+        .controls-card {
+            background: #18181c;
+            border: 1px solid #292933;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .control-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            font-weight: 700;
+            color: #cbd5e1;
+        }
+
+        .control-value-badge {
+            color: #38bdf8;
+            font-family: monospace;
+            font-size: 10.5px;
+        }
+
+        .control-slider {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #2b2b36;
+            outline: none;
+        }
+
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+            transition: transform 0.1s ease;
+        }
+        .control-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Detection Metrics Box */
+        .metrics-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 6px;
+            padding: 8px 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metric-title {
+            font-size: 8px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-val {
+            font-size: 12px;
+            font-weight: 800;
+            color: #f1f5f9;
+            font-family: monospace;
+        }
+        .metric-val.saved {
+            color: var(--emerald);
+        }
+
+        /* Review Mode Toggle Bar */
+        .review-mode-toggle-bar {
+            background: #18181c;
+            border: 1px solid #292933;
+            border-radius: 6px;
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 10px;
+            font-weight: 700;
+            color: #cbd5e1;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 32px;
+            height: 16px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: #2b2b36;
+            transition: .2s;
+            border-radius: 16px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 10px;
+            width: 10px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .2s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider {
+            background-color: #f59e0b;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(16px);
+        }
+
+        /* Big Action Button */
+        .btn-cut-action {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-cut-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+
+        .btn-cut-action.review-state {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+            color: #000;
+        }
+
+        .btn-cut-action.delete-state {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+            color: #fff;
+        }
+
+        .btn-cut-action.completed-state {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5);
+            color: #fff;
+        }
+
+        /* Status Subline Pill */
+        .status-subline-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 9.5px;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        .subline-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--emerald);
+            box-shadow: 0 0 6px var(--emerald);
+        }
+        .subline-dot.busy {
+            background: #38bdf8;
+            box-shadow: 0 0 6px #38bdf8;
+            animation: pulse-ring 0.6s infinite alternate;
+        }
+
+        /* Undo / Reset Button */
+        .btn-reset-timeline {
+            background: transparent;
+            border: 1px dashed #3e3e4a;
+            color: #94a3b8;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+        }
+        .btn-reset-timeline:hover {
+            color: #fff;
+            border-color: #64748b;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        /* Dock Bottom Direct Buy Teaser */
+        .dock-footer-cta {
+            margin-top: auto;
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.12) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: center;
+        }
+
+        .dock-cta-title {
+            font-size: 10px;
+            font-weight: 800;
+            color: #34d399;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .dock-cta-sub {
+            font-size: 9px;
+            color: #94a3b8;
+            line-height: 1.3;
+        }
+
+        .dock-cta-btn {
+            background: var(--emerald);
+            color: #022c22;
+            font-size: 10.5px;
+            font-weight: 800;
+            padding: 6px 0;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .dock-cta-btn:hover {
+            background: #34d399;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+        }
+
+        /* --- SUCCESS MODAL POPUP --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: #141418;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(16, 185, 129, 0.2);
+            border-radius: 10px;
+            width: 440px;
+            max-width: 90vw;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            animation: modal-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modal-pop {
+            0% { transform: scale(0.92); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 12px;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .modal-desc {
+            font-size: 12px;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+
+        .modal-stats-box {
+            background: #1a1a20;
+            border: 1px solid #2e2e38;
+            border-radius: 6px;
+            width: 100%;
+            padding: 10px 14px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .modal-btn-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .modal-primary-btn {
+            flex: 2;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+        .modal-primary-btn:hover {
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+        }
+
+        .modal-close-btn {
+            flex: 1;
+            background: #25252d;
+            border: 1px solid #3e3e48;
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .modal-close-btn:hover {
+            background: #33333d;
+            color: #fff;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 900px) {
+            .pr-workspace-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+            }
+            .pr-program-monitor { grid-column: 1 / 2; grid-row: 1 / 2; }
+            .pr-plugin-dock { grid-column: 1 / 2; grid-row: 2 / 3; }
+            .pr-timeline-panel { grid-column: 1 / 2; grid-row: 3 / 4; height: 350px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP GLOBAL CALL-TO-ACTION BAR -->
+    <header class="cta-header-bar">
+        <div class="cta-brand-tag">
+            <span style="color:#f8fafc;">DeadAir</span>
+            <span style="color:#64748b;">by Rayborn Labs</span>
+            <span class="cta-brand-pill">Interactive Simulator</span>
+        </div>
+        <div class="cta-center-msg">
+            <span>⚡ Try Before You Buy:</span> Test the silence cutting algorithm live inside this simulated Premiere Pro interface!
+        </div>
+        <a href="https://raybornlabs.gumroad.com/l/eyocco" target="_blank" class="cta-buy-btn">
+            <span>Get DeadAir for $5</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+    </header>
+
+    <!-- PREMIERE PRO SIMULATOR WINDOW -->
+    <div class="pr-window-wrapper">
+        
+        <!-- Title Bar -->
+        <div class="pr-titlebar">
+            <div class="pr-window-controls">
+                <div class="win-dot dot-red"></div>
+                <div class="win-dot dot-yellow"></div>
+                <div class="win-dot dot-green"></div>
+            </div>
+            <div class="pr-app-title">
+                <span class="pr-app-badge">Pr</span>
+                <span>Adobe Premiere Pro 2026 — Podcast_Interview_Master.prproj</span>
+            </div>
+            <div class="pr-menu-bar">
+                <span class="pr-menu-item">File</span>
+                <span class="pr-menu-item">Edit</span>
+                <span class="pr-menu-item">Clip</span>
+                <span class="pr-menu-item">Sequence</span>
+                <span class="pr-menu-item">Window</span>
+                <span class="pr-menu-item">Help</span>
+            </div>
+        </div>
+
+        <!-- Workspaces Bar -->
+        <div class="pr-workspaces-bar">
+            <span class="ws-tab">Editing</span>
+            <span class="ws-tab">Color</span>
+            <span class="ws-tab active">DeadAir Precision Cut</span>
+            <span class="ws-tab">Audio</span>
+            <span class="ws-tab">Effects</span>
+        </div>
+
+        <!-- Main Workspace Grid -->
+        <div class="pr-workspace-grid">
+
+            <!-- TOP-LEFT: PROGRAM MONITOR -->
+            <div class="pr-program-monitor">
+                <div class="panel-tab-bar">
+                    <div class="panel-tab-active">Program: Podcast_Interview_Master</div>
+                </div>
+                <div class="monitor-stage-container">
+                    <div class="simulated-video-screen">
+                        <div class="video-speaker-avatar" id="speakerAvatar">
+                            <div class="speaking-ring" id="speakingRing"></div>
+                            🎙️
+                        </div>
+                        <div class="video-title-caption">EPISODE 14: WORKFLOW AUTOMATION</div>
+                        <div class="video-status-subtitle" id="videoStatusSub">
+                            <span style="width:6px;height:6px;border-radius:50%;background:currentColor;"></span>
+                            <span id="videoStatusText">Active Dialogue</span>
+                        </div>
+                        <!-- Audio Level VU Meter -->
+                        <div class="vu-meter-bar">
+                            <div class="vu-channel" id="vuChannelL"></div>
+                            <div class="vu-channel" id="vuChannelR"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Monitor Transport Strip -->
+                <div class="monitor-controls-strip">
+                    <div class="timecode-display" id="timecodeDisplay">00:00:00:00</div>
+                    <div class="playback-buttons">
+                        <button class="transport-btn" id="btnGoStart" title="Go to Beginning">⏮</button>
+                        <button class="transport-btn" id="btnStepBack" title="Step Back 1s">◀</button>
+                        <button class="transport-btn btn-play" id="btnPlayPause">PLAY</button>
+                        <button class="transport-btn" id="btnStepForward" title="Step Forward 1s">▶</button>
+                        <button class="transport-btn" id="btnAudioMute" title="Toggle Simulator Audio">🔊</button>
+                    </div>
+                    <div style="font-size:10px; color:#64748b; font-weight:600;">Spacebar = Play/Pause</div>
+                </div>
+            </div>
+
+            <!-- BOTTOM-LEFT: PREMIERE TIMELINE -->
+            <div class="pr-timeline-panel">
+                <div class="timeline-tab-bar">
+                    <div class="timeline-tab-title">
+                        <span>🎞️ Sequence: Podcast_Interview_Master</span>
+                    </div>
+                    <div class="timeline-backup-toast" id="backupToast">
+                        <span>🛡️ Auto-Backup Created: Sequence_Master_Backup_01</span>
+                    </div>
+                </div>
+
+                <!-- Time Ruler -->
+                <div class="timeline-ruler" id="timelineRuler">
+                    <!-- Generated ticks in JS -->
+                </div>
+
+                <!-- Red Playhead -->
+                <div class="timeline-playhead-line" id="playheadLine">
+                    <div class="playhead-handle"></div>
+                </div>
+
+                <!-- Tracks Lane -->
+                <div class="tracks-viewport" id="tracksViewport">
+                    
+                    <!-- V1 Video Track -->
+                    <div class="track-row">
+                        <div class="track-header">
+                            <div class="track-header-title">
+                                <span>V1</span>
+                                <span style="font-size:9px;color:#64748b;">4K Video</span>
+                            </div>
+                            <div class="track-controls">
+                                <div class="trk-btn">👁</div>
+                                <div class="trk-btn">🔒</div>
+                            </div>
+                        </div>
+                        <div class="track-lane" id="laneV1">
+                            <!-- Video Clips rendered by JS -->
+                        </div>
+                    </div>
+
+                    <!-- A1 Dialogue Track (Waveforms & Dead Air) -->
+                    <div class="track-row audio-track">
+                        <div class="track-header">
+                            <div class="track-header-title">
+                                <span>A1</span>
+                                <span style="font-size:9px;color:#38bdf8;">Dialogue</span>
+                            </div>
+                            <div class="track-controls">
+                                <div class="trk-btn active">M</div>
+                                <div class="trk-btn">S</div>
+                                <div class="trk-btn">R</div>
+                            </div>
+                        </div>
+                        <div class="track-lane" id="laneA1">
+                            <!-- Audio Clips & Gaps rendered by JS -->
+                        </div>
+                    </div>
+
+                    <!-- A2 Background Music Track (Sync Locked) -->
+                    <div class="track-row">
+                        <div class="track-header">
+                            <div class="track-header-title">
+                                <span>A2</span>
+                                <span style="font-size:9px;color:#c084fc;">Music Bed</span>
+                            </div>
+                            <div class="track-controls">
+                                <div class="trk-btn active" title="Sync Lock Protected">⇥</div>
+                                <div class="trk-btn">🔒</div>
+                            </div>
+                        </div>
+                        <div class="track-lane" id="laneA2">
+                            <!-- Background Music Clip (untouched) -->
+                            <div class="timeline-clip clip-a2" style="left: 0%; width: 100%;">
+                                <div class="clip-title-label">🎵 Ambient_Podcast_Bed_Stereo.wav [Sync-Locked]</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: DOCKED DEADAIR EXTENSION -->
+            <div class="pr-plugin-dock">
+                <div class="panel-brand-header">
+                    <div class="brand-meta">
+                        <div class="brand-logo-sq">D</div>
+                        <div class="brand-title-wrap">
+                            <span class="brand-name">DEADAIR</span>
+                            <span class="brand-author">BY RAYBORN LABS</span>
+                        </div>
+                    </div>
+                    <div class="license-status-badge">
+                        <div class="status-dot-green"></div>
+                        <span>PRO ACTIVE</span>
+                    </div>
+                </div>
+
+                <div class="plugin-body-content">
+                    
+                    <!-- Selection Mode Tabs -->
+                    <div class="plugin-mode-tabs">
+                        <button class="plugin-tab-btn" id="tabSelectedClip">Selected Clip</button>
+                        <button class="plugin-tab-btn active" id="tabWholeTimeline">Whole Timeline</button>
+                    </div>
+
+                    <!-- Precision Dials Card -->
+                    <div class="controls-card">
+                        <!-- Threshold Dial -->
+                        <div class="control-row">
+                            <div class="control-label-row">
+                                <span>SILENCE THRESHOLD</span>
+                                <span class="control-value-badge" id="lblThreshold">-30 dB</span>
+                            </div>
+                            <input type="range" class="control-slider" id="sliderThreshold" min="-50" max="-15" value="-30" step="1">
+                        </div>
+
+                        <!-- Min Silence Dial -->
+                        <div class="control-row">
+                            <div class="control-label-row">
+                                <span>MIN SILENCE DURATION</span>
+                                <span class="control-value-badge" id="lblMinSilence">0.50 s</span>
+                            </div>
+                            <input type="range" class="control-slider" id="sliderMinSilence" min="0.2" max="1.5" value="0.5" step="0.05">
+                        </div>
+
+                        <!-- Padding Buffer Dial -->
+                        <div class="control-row">
+                            <div class="control-label-row">
+                                <span>PADDING BUFFER</span>
+                                <span class="control-value-badge" id="lblPadding">0.15 s</span>
+                            </div>
+                            <input type="range" class="control-slider" id="sliderPadding" min="0.05" max="0.40" value="0.15" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- Detection Metrics -->
+                    <div class="metrics-card">
+                        <div class="metric-item">
+                            <span class="metric-title">Dead Air Pauses</span>
+                            <span class="metric-val" id="metricGapsCount">5 pauses</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-title">Silence Time</span>
+                            <span class="metric-val" id="metricSilenceDuration">22.4s</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-title">Original Duration</span>
+                            <span class="metric-val" id="metricOrigDuration">01:42</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-title">Projected Save</span>
+                            <span class="metric-val saved" id="metricTimeSaved">36.5%</span>
+                        </div>
+                    </div>
+
+                    <!-- Review Mode Toggle -->
+                    <div class="review-mode-toggle-bar">
+                        <span id="reviewModeLabel">Review Mode: OFF</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="chkReviewMode">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Primary Action Cut Button -->
+                    <button class="btn-cut-action" id="btnCutAction">
+                        <span>✂️ CUT DEAD AIR</span>
+                    </button>
+
+                    <!-- Real-Time Status Subline -->
+                    <div class="status-subline-pill" id="statusSubline">
+                        <div class="subline-dot" id="sublineDot"></div>
+                        <span id="sublineText">Ready to analyze sequence</span>
+                    </div>
+
+                    <!-- Reset / Undo Button -->
+                    <button class="btn-reset-timeline" id="btnResetTimeline">
+                        ↺ Reset Sequence to Original (Cmd+Z)
+                    </button>
+
+                    <!-- Dock Bottom Direct Buy Teaser -->
+                    <div class="dock-footer-cta">
+                        <span class="dock-cta-title">Ready for your actual edits?</span>
+                        <span class="dock-cta-sub">Save 40+ minutes on every podcast, interview, & YouTube cut.</span>
+                        <a href="https://raybornlabs.gumroad.com/l/eyocco" target="_blank" class="dock-cta-btn">
+                            Get DeadAir — $5 Instant Access
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SUCCESS MODAL POPUP -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-card">
+            <div class="modal-icon">🎉</div>
+            <div class="modal-title" id="modalTitle">Dead Air Ripple-Deleted!</div>
+            <div class="modal-desc" id="modalDesc">
+                DeadAir backed up your sequence and automatically ripple-deleted all detected silent pauses without cutting spoken words.
+            </div>
+            <div class="modal-stats-box">
+                <div>
+                    <div style="font-size:9px;color:#64748b;font-weight:700;">TIME REMOVED</div>
+                    <div style="font-size:16px;font-weight:900;color:#10b981;" id="modalTimeRemoved">22.4 Seconds</div>
+                </div>
+                <div>
+                    <div style="font-size:9px;color:#64748b;font-weight:700;">SPEED BOOST</div>
+                    <div style="font-size:16px;font-weight:900;color:#38bdf8;" id="modalSpeedBoost">+36.5% Faster</div>
+                </div>
+            </div>
+            <div class="modal-btn-row">
+                <a href="https://raybornlabs.gumroad.com/l/eyocco" target="_blank" class="modal-primary-btn">
+                    <span>Get DeadAir for $5</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+                <button class="modal-close-btn" id="modalBtnClose">Test Timeline</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. TIMELINE DATA MODEL (Simulated Sequence) ---
+        const BASE_SEGMENTS = [
+            { type: 'speech', text: 'Welcome back to the podcast!', duration: 14 },
+            { type: 'silence', duration: 4.8 },
+            { type: 'speech', text: 'Today we are exploring automated workflow engineering.', duration: 22 },
+            { type: 'silence', duration: 5.2 },
+            { type: 'speech', text: 'Cutting 45 minutes of natural silences manually is exhausting.', duration: 18 },
+            { type: 'silence', duration: 4.2 },
+            { type: 'speech', text: 'With DeadAir, one click ripple-deletes every gap.', duration: 20 },
+            { type: 'silence', duration: 5.6 },
+            { type: 'speech', text: 'Leaving perfect padding buffer so words never get clipped.', duration: 18 }
+        ];
+
+        let state = {
+            isPlaying: false,
+            currentTime: 0,
+            isCut: false,
+            isMarked: false,
+            isReviewMode: false,
+            threshold: -30,
+            minSilence: 0.50,
+            padding: 0.15,
+            audioMuted: false,
+            segments: JSON.parse(JSON.stringify(BASE_SEGMENTS))
+        };
+
+        // --- 2. DOM ELEMENTS ---
+        const playheadLine = document.getElementById('playheadLine');
+        const timecodeDisplay = document.getElementById('timecodeDisplay');
+        const laneV1 = document.getElementById('laneV1');
+        const laneA1 = document.getElementById('laneA1');
+        const timelineRuler = document.getElementById('timelineRuler');
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        const btnGoStart = document.getElementById('btnGoStart');
+        const btnStepBack = document.getElementById('btnStepBack');
+        const btnStepForward = document.getElementById('btnStepForward');
+        const btnAudioMute = document.getElementById('btnAudioMute');
+        const speakerAvatar = document.getElementById('speakerAvatar');
+        const speakingRing = document.getElementById('speakingRing');
+        const videoStatusSub = document.getElementById('videoStatusSub');
+        const videoStatusText = document.getElementById('videoStatusText');
+        const vuChannelL = document.getElementById('vuChannelL');
+        const vuChannelR = document.getElementById('vuChannelR');
+        const backupToast = document.getElementById('backupToast');
+
+        // Plugin controls
+        const sliderThreshold = document.getElementById('sliderThreshold');
+        const lblThreshold = document.getElementById('lblThreshold');
+        const sliderMinSilence = document.getElementById('sliderMinSilence');
+        const lblMinSilence = document.getElementById('lblMinSilence');
+        const sliderPadding = document.getElementById('sliderPadding');
+        const lblPadding = document.getElementById('lblPadding');
+        const chkReviewMode = document.getElementById('chkReviewMode');
+        const reviewModeLabel = document.getElementById('reviewModeLabel');
+        const btnCutAction = document.getElementById('btnCutAction');
+        const statusSubline = document.getElementById('statusSubline');
+        const sublineDot = document.getElementById('sublineDot');
+        const sublineText = document.getElementById('sublineText');
+        const btnResetTimeline = document.getElementById('btnResetTimeline');
+
+        // Metrics
+        const metricGapsCount = document.getElementById('metricGapsCount');
+        const metricSilenceDuration = document.getElementById('metricSilenceDuration');
+        const metricOrigDuration = document.getElementById('metricOrigDuration');
+        const metricTimeSaved = document.getElementById('metricTimeSaved');
+
+        // Modal
+        const successModal = document.getElementById('successModal');
+        const modalBtnClose = document.getElementById('modalBtnClose');
+        const modalTimeRemoved = document.getElementById('modalTimeRemoved');
+        const modalSpeedBoost = document.getElementById('modalSpeedBoost');
+
+        // --- 3. VU METER SETUP ---
+        function initVUMeter() {
+            vuChannelL.innerHTML = '';
+            vuChannelR.innerHTML = '';
+            for (let i = 0; i < 24; i++) {
+                const segL = document.createElement('div');
+                segL.className = 'vu-segment';
+                vuChannelL.appendChild(segL);
+
+                const segR = document.createElement('div');
+                segR.className = 'vu-segment';
+                vuChannelR.appendChild(segR);
+            }
+        }
+        initVUMeter();
+
+        function updateVUMeter(level) {
+            const segsL = vuChannelL.children;
+            const segsR = vuChannelR.children;
+            const activeCount = Math.floor(level * segsL.length);
+
+            for (let i = 0; i < segsL.length; i++) {
+                const isLit = i < activeCount;
+                let colorClass = '';
+                if (isLit) {
+                    if (i < segsL.length * 0.65) colorClass = 'lit-green';
+                    else if (i < segsL.length * 0.85) colorClass = 'lit-yellow';
+                    else colorClass = 'lit-red';
+                }
+                segsL[i].className = 'vu-segment ' + colorClass;
+                segsR[i].className = 'vu-segment ' + colorClass;
+            }
+        }
+
+        // --- 4. WEB AUDIO SYNTHESIZER ---
+        let audioCtx = null;
+        let speechOsc = null;
+        let speechGain = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSynthSpeech(active) {
+            if (state.audioMuted || !state.isPlaying) {
+                if (speechGain && audioCtx) speechGain.gain.setValueAtTime(0, audioCtx.currentTime);
+                return;
+            }
+            if (!audioCtx) return;
+
+            if (!speechOsc) {
+                speechOsc = audioCtx.createOscillator();
+                speechGain = audioCtx.createGain();
+                speechOsc.type = 'triangle';
+                speechOsc.frequency.setValueAtTime(140, audioCtx.currentTime);
+                speechGain.gain.setValueAtTime(0, audioCtx.currentTime);
+                speechOsc.connect(speechGain);
+                speechGain.connect(audioCtx.destination);
+                speechOsc.start();
+            }
+
+            if (active) {
+                const now = audioCtx.currentTime;
+                speechOsc.frequency.setValueAtTime(130 + Math.sin(now * 8) * 25, now);
+                speechGain.gain.setTargetAtTime(0.04, now, 0.03);
+            } else {
+                speechGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.02);
+            }
+        }
+
+        function playSnapSound() {
+            if (state.audioMuted || !audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+                g.gain.setValueAtTime(0.08, now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                osc.connect(g);
+                g.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.09);
+            } catch(e){}
+        }
+
+        // --- 5. TIMELINE RENDERING ENGINE ---
+        function getTotalDuration() {
+            return state.segments.reduce((acc, s) => acc + s.duration, 0);
+        }
+
+        function formatTimecode(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            const frames = Math.floor((seconds % 1) * 30);
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}:${String(frames).padStart(2, '0')}`;
+        }
+
+        function renderRuler() {
+            timelineRuler.innerHTML = '';
+            const total = getTotalDuration();
+            const step = 10;
+            for (let t = 0; t <= total + 5; t += step) {
+                const pct = (t / total) * 100;
+                if (pct > 100) break;
+
+                const tick = document.createElement('div');
+                tick.className = 'ruler-tick major';
+                tick.style.left = `${pct}%`;
+
+                const label = document.createElement('div');
+                label.className = 'ruler-label';
+                label.style.left = `${pct}%`;
+                label.innerText = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+
+                timelineRuler.appendChild(tick);
+                timelineRuler.appendChild(label);
+            }
+        }
+
+        function renderClips() {
+            laneV1.innerHTML = '';
+            laneA1.innerHTML = '';
+
+            const total = getTotalDuration();
+            let currentOffset = 0;
+
+            state.segments.forEach((seg, idx) => {
+                const startPct = (currentOffset / total) * 100;
+                const widthPct = (seg.duration / total) * 100;
+
+                if (seg.type === 'speech') {
+                    // Render Video Clip (V1)
+                    const vClip = document.createElement('div');
+                    vClip.className = 'timeline-clip clip-v1';
+                    vClip.style.left = `${startPct}%`;
+                    vClip.style.width = `calc(${widthPct}% - 2px)`;
+                    vClip.innerHTML = `<div class="clip-title-label">Cam_A_${idx + 1}.mp4 [4K]</div>`;
+                    laneV1.appendChild(vClip);
+
+                    // Render Audio Clip (A1)
+                    const aClip = document.createElement('div');
+                    aClip.className = 'timeline-clip clip-a1';
+                    aClip.style.left = `${startPct}%`;
+                    aClip.style.width = `calc(${widthPct}% - 2px)`;
+                    aClip.innerHTML = `
+                        <div class="clip-title-label">🎙️ Dialogue_${idx + 1}.wav</div>
+                        <canvas class="waveform-canvas"></canvas>
+                    `;
+                    laneA1.appendChild(aClip);
+
+                    setTimeout(() => drawClipWaveform(aClip.querySelector('canvas')), 20);
+
+                } else if (seg.type === 'silence') {
+                    // Render Dead Air Silence Gap
+                    if (!state.isCut) {
+                        const gap = document.createElement('div');
+                        gap.className = 'silence-gap-overlay';
+                        gap.style.left = `${startPct}%`;
+                        gap.style.width = `calc(${widthPct}% - 2px)`;
+                        gap.id = `gap-${idx}`;
+                        gap.innerHTML = `<div class="silence-gap-label">⚠️ ${seg.duration.toFixed(1)}s DEAD AIR</div>`;
+                        laneA1.appendChild(gap);
+                    }
+                }
+
+                currentOffset += seg.duration;
+            });
+
+            renderRuler();
+            updateMetrics();
+        }
+
+        function drawClipWaveform(canvas) {
+            if (!canvas) return;
+            const w = canvas.offsetWidth;
+            const h = canvas.offsetHeight;
+            canvas.width = w;
+            canvas.height = h;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#2dd4bf';
+
+            const mid = h / 2;
+            const bars = Math.floor(w / 3);
+
+            for (let i = 0; i < bars; i++) {
+                const seed = Math.sin(i * 0.12) * Math.cos(i * 0.28) + 0.3;
+                const amplitude = Math.max(2, Math.abs(seed) * (h * 0.42));
+                const x = i * 3;
+                ctx.fillRect(x, mid - amplitude, 1.8, amplitude * 2);
+            }
+        }
+
+        // --- 6. METRICS & STATS CALCULATION ---
+        function updateMetrics() {
+            const silenceSegs = state.segments.filter(s => s.type === 'silence');
+            const totalSilence = silenceSegs.reduce((acc, s) => acc + s.duration, 0);
+            const totalDuration = getTotalDuration();
+            const pctSaved = totalDuration > 0 ? ((totalSilence / totalDuration) * 100).toFixed(1) : 0;
+
+            metricGapsCount.innerText = `${silenceSegs.length} pauses`;
+            metricSilenceDuration.innerText = `${totalSilence.toFixed(1)}s`;
+            metricOrigDuration.innerText = formatTimecode(totalDuration).substring(3);
+            metricTimeSaved.innerText = `${pctSaved}%`;
+
+            modalTimeRemoved.innerText = `${totalSilence.toFixed(1)} Seconds`;
+            modalSpeedBoost.innerText = `+${pctSaved}% Faster`;
+        }
+
+        // --- 7. PLAYBACK TRANSPORT LOOP ---
+        let lastTimestamp = 0;
+
+        function playbackLoop(timestamp) {
+            if (!state.isPlaying) return;
+
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const delta = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+
+            state.currentTime += delta;
+            const totalDuration = getTotalDuration();
+
+            if (state.currentTime >= totalDuration) {
+                state.currentTime = 0;
+            }
+
+            const pct = (state.currentTime / totalDuration) * 100;
+            playheadLine.style.left = `calc(90px + ${pct}% * ((100% - 90px) / 100))`;
+            timecodeDisplay.innerText = formatTimecode(state.currentTime);
+
+            let accum = 0;
+            let currentSeg = null;
+            for (let seg of state.segments) {
+                if (state.currentTime >= accum && state.currentTime <= accum + seg.duration) {
+                    currentSeg = seg;
+                    break;
+                }
+                accum += seg.duration;
+            }
+
+            if (currentSeg && currentSeg.type === 'speech') {
+                speakingRing.classList.add('active');
+                videoStatusSub.className = 'video-status-subtitle';
+                videoStatusText.innerText = 'Active Dialogue';
+                const level = 0.45 + Math.sin(timestamp * 0.02) * 0.35;
+                updateVUMeter(level);
+                playSynthSpeech(true);
+            } else {
+                speakingRing.classList.remove('active');
+                videoStatusSub.className = 'video-status-subtitle deadair';
+                videoStatusText.innerText = state.isCut ? 'Seamless Transition' : '⚠️ Silent Pause (-inf dB)';
+                updateVUMeter(0.02);
+                playSynthSpeech(false);
+            }
+
+            requestAnimationFrame(playbackLoop);
+        }
+
+        function togglePlayPause() {
+            initAudio();
+            state.isPlaying = !state.isPlaying;
+            if (state.isPlaying) {
+                btnPlayPause.innerText = 'PAUSE';
+                btnPlayPause.style.background = '#dc2626';
+                lastTimestamp = 0;
+                requestAnimationFrame(playbackLoop);
+            } else {
+                btnPlayPause.innerText = 'PLAY';
+                btnPlayPause.style.background = '#1e3a8a';
+                playSynthSpeech(false);
+                updateVUMeter(0);
+                speakingRing.classList.remove('active');
+            }
+        }
+
+        // --- 8. DIAL INTERACTIONS & DYNAMIC DETECTION ---
+        sliderThreshold.addEventListener('input', (e) => {
+            state.threshold = parseInt(e.target.value);
+            lblThreshold.innerText = `${state.threshold} dB`;
+            recalculateSilenceDetections();
+        });
+
+        sliderMinSilence.addEventListener('input', (e) => {
+            state.minSilence = parseFloat(e.target.value);
+            lblMinSilence.innerText = `${state.minSilence.toFixed(2)} s`;
+            recalculateSilenceDetections();
+        });
+
+        sliderPadding.addEventListener('input', (e) => {
+            state.padding = parseFloat(e.target.value);
+            lblPadding.innerText = `${state.padding.toFixed(2)} s`;
+            recalculateSilenceDetections();
+        });
+
+        function recalculateSilenceDetections() {
+            if (state.isCut) return;
+
+            const modFactor = (state.threshold + 50) / 35;
+            state.segments = BASE_SEGMENTS.map(s => {
+                if (s.type === 'silence') {
+                    const calculated = s.duration * (0.6 + modFactor * 0.8) - (state.padding * 2);
+                    return { ...s, duration: Math.max(state.minSilence, calculated) };
+                }
+                return { ...s };
+            });
+
+            renderClips();
+            sublineText.innerText = `Recalculated: ${state.segments.filter(s=>s.type==='silence').length} pauses at ${state.threshold} dB`;
+        }
+
+        // Review Mode Toggle
+        chkReviewMode.addEventListener('change', (e) => {
+            state.isReviewMode = e.target.checked;
+            reviewModeLabel.innerText = state.isReviewMode ? 'Review Mode: ON' : 'Review Mode: OFF';
+            
+            if (state.isReviewMode) {
+                btnCutAction.className = 'btn-cut-action review-state';
+                btnCutAction.innerHTML = '<span>🔍 MARK SILENCE GAPS</span>';
+                sublineText.innerText = 'Review Mode: Marks gaps on timeline first';
+            } else {
+                btnCutAction.className = 'btn-cut-action';
+                btnCutAction.innerHTML = '<span>✂️ CUT DEAD AIR</span>';
+                sublineText.innerText = 'Direct Mode: 1-click ripple delete';
+            }
+        });
+
+        // --- 9. PRIMARY ACTION BUTTON (CUT / REVIEW) ---
+        btnCutAction.addEventListener('click', () => {
+            initAudio();
+
+            if (state.isCut) {
+                successModal.classList.add('active');
+                return;
+            }
+
+            if (state.isReviewMode && !state.isMarked) {
+                executeMarkGaps();
+            } else {
+                executeRippleCut();
+            }
+        });
+
+        function executeMarkGaps() {
+            sublineDot.className = 'subline-dot busy';
+            sublineText.innerText = 'Scanning audio tracks for pauses...';
+            btnCutAction.disabled = true;
+
+            setTimeout(() => {
+                sublineText.innerText = 'Markers placed on 5 silence gaps.';
+                sublineDot.className = 'subline-dot';
+                state.isMarked = true;
+                btnCutAction.disabled = false;
+                btnCutAction.className = 'btn-cut-action delete-state';
+                btnCutAction.innerHTML = '<span>🗑️ DELETE MARKED GAPS</span>';
+
+                document.querySelectorAll('.silence-gap-overlay').forEach(el => {
+                    el.style.background = 'repeating-linear-gradient(-45deg, #f59e0b, #f59e0b 6px, #d97706 6px, #d97706 12px)';
+                    el.style.boxShadow = '0 0 15px #f59e0b';
+                });
+            }, 600);
+        }
+
+        function executeRippleCut() {
+            sublineDot.className = 'subline-dot busy';
+            btnCutAction.disabled = true;
+
+            // Step 1: Auto Sequence Backup
+            sublineText.innerText = 'Creating sequence backup in Premiere...';
+            backupToast.style.display = 'flex';
+
+            setTimeout(() => {
+                sublineText.innerText = `Analyzing waveforms below ${state.threshold} dB...`;
+            }, 500);
+
+            setTimeout(() => {
+                sublineText.innerText = 'Ripple deleting dead air gaps...';
+                document.querySelectorAll('.silence-gap-overlay').forEach(el => el.classList.add('cut-active'));
+                playSnapSound();
+            }, 1000);
+
+            setTimeout(() => {
+                state.segments = state.segments.filter(s => s.type !== 'silence');
+                state.isCut = true;
+                state.currentTime = 0;
+                renderClips();
+
+                sublineDot.className = 'subline-dot';
+                sublineText.innerText = 'COMPLETED! Sequence ripple-deleted seamlessly.';
+                btnCutAction.disabled = false;
+                btnCutAction.className = 'btn-cut-action completed-state';
+                btnCutAction.innerHTML = '<span>COMPLETED!</span>';
+
+                setTimeout(() => {
+                    successModal.classList.add('active');
+                }, 400);
+
+            }, 1400);
+        }
+
+        // --- 10. RESET / UNDO TIMELINE (Cmd+Z) ---
+        function resetTimeline() {
+            state.segments = JSON.parse(JSON.stringify(BASE_SEGMENTS));
+            state.isCut = false;
+            state.isMarked = false;
+            state.currentTime = 0;
+            backupToast.style.display = 'none';
+
+            if (state.isReviewMode) {
+                btnCutAction.className = 'btn-cut-action review-state';
+                btnCutAction.innerHTML = '<span>🔍 MARK SILENCE GAPS</span>';
+            } else {
+                btnCutAction.className = 'btn-cut-action';
+                btnCutAction.innerHTML = '<span>✂️ CUT DEAD AIR</span>';
+            }
+
+            sublineText.innerText = 'Ready to analyze sequence';
+            renderClips();
+            recalculateSilenceDetections();
+        }
+
+        btnResetTimeline.addEventListener('click', resetTimeline);
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlayPause();
+            } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                resetTimeline();
+            }
+        });
+
+        // Transport controls
+        btnPlayPause.addEventListener('click', togglePlayPause);
+        btnGoStart.addEventListener('click', () => { state.currentTime = 0; });
+        btnStepBack.addEventListener('click', () => { state.currentTime = Math.max(0, state.currentTime - 1); });
+        btnStepForward.addEventListener('click', () => { state.currentTime = Math.min(getTotalDuration(), state.currentTime + 1); });
+
+        // Audio Mute toggle
+        btnAudioMute.addEventListener('click', () => {
+            state.audioMuted = !state.audioMuted;
+            btnAudioMute.innerText = state.audioMuted ? '🔇' : '🔊';
+            if (state.audioMuted) playSynthSpeech(false);
+        });
+
+        // Modal close
+        modalBtnClose.addEventListener('click', () => {
+            successModal.classList.remove('active');
+        });
+
+        // Tabs toggle
+        document.getElementById('tabSelectedClip').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('tabWholeTimeline').classList.remove('active');
+            sublineText.innerText = 'Mode: Cuts only selected clip on timeline';
+        });
+        document.getElementById('tabWholeTimeline').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('tabSelectedClip').classList.remove('active');
+            sublineText.innerText = 'Mode: Cuts entire active sequence';
+        });
+
+        // Initial Render
+        renderClips();
+    </script>
+</body>
+</html>
