@@ -626,8 +626,42 @@
         .timeline-clip.selected {
             outline: 2px solid #ffffff !important;
             outline-offset: -1px;
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
-            z-index: 20;
+            box-shadow: 0 0 16px rgba(255, 255, 255, 0.6) !important;
+            z-index: 25;
+            filter: brightness(1.18);
+        }
+
+        .timeline-clip.cut-completed {
+            border-color: #059669 !important;
+        }
+
+        .clip-status-tag {
+            position: absolute;
+            top: 3px;
+            right: 4px;
+            font-size: 8px;
+            font-weight: 800;
+            padding: 1px 5px;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 5;
+            letter-spacing: 0.3px;
+        }
+        .clip-status-tag.cut {
+            background: #059669;
+            color: #ffffff;
+            box-shadow: 0 0 6px rgba(5, 150, 105, 0.5);
+        }
+        .clip-status-tag.uncut {
+            background: rgba(15, 23, 42, 0.85);
+            color: #94a3b8;
+            border: 1px solid #475569;
+        }
+        .clip-status-tag.selected-tag {
+            background: #ffffff;
+            color: #0f172a;
+            font-weight: 900;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
         }
 
         .clip-v1 {
@@ -701,10 +735,11 @@
         }
 
         .silence-gap-overlay.cut-active {
-            background: rgba(16, 185, 129, 0.5);
-            border-color: #10b981;
+            background: rgba(239, 68, 68, 0.6) !important;
+            border-color: #ef4444 !important;
             transform: scaleY(0);
             opacity: 0;
+            transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* --- RIGHT PANEL: DOCKED DEADAIR EXTENSION --- */
@@ -1329,7 +1364,7 @@
                         <span>🎞️ Sequence: Podcast_Interview_Master</span>
                     </div>
                     <div class="timeline-hint" id="timelineModeHint">
-                        Mode: <b>Whole Timeline</b> (Click "Selected Clip" tab to cut a single clip)
+                        Mode: <b>Selected Clip: Clip_01_Intro</b> (Click any clip on timeline to target)
                     </div>
                     <div class="timeline-backup-toast" id="backupToast">
                         <span>🛡️ Auto-Backup Created: Sequence_Master_Backup_01</span>
@@ -1420,8 +1455,8 @@
                     
                     <!-- Selection Mode Tabs -->
                     <div class="plugin-mode-tabs">
-                        <button class="plugin-tab-btn" id="tabSelectedClip">Selected Clip</button>
-                        <button class="plugin-tab-btn active" id="tabWholeTimeline">Whole Timeline</button>
+                        <button class="plugin-tab-btn active" id="tabSelectedClip">Selected Clip</button>
+                        <button class="plugin-tab-btn" id="tabWholeTimeline">Whole Timeline</button>
                     </div>
 
                     <!-- Precision Dials Card -->
@@ -1593,9 +1628,11 @@
             }
         ];
 
+        const BASE_SEQUENCE_DURATION = 105; // Fixed 105-second sequence coordinate system
+
         let state = {
-            mode: 'timeline', // 'timeline' or 'clip'
-            selectedClipId: 2, // default select Clip 2 when in 'clip' mode
+            mode: 'clip', // Default to 'clip' mode so clicking clips immediately targets them
+            selectedClipId: 1, // Start with Clip 1 selected
             isPlaying: false,
             currentTime: 0,
             isMarked: false,
@@ -1654,6 +1691,8 @@
         const modalBtnRestart = document.getElementById('modalBtnRestart');
         const modalTimeRemoved = document.getElementById('modalTimeRemoved');
         const modalSpeedBoost = document.getElementById('modalSpeedBoost');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDesc = document.getElementById('modalDesc');
 
         // --- 3. VU METER SETUP ---
         function initVUMeter() {
@@ -1763,14 +1802,13 @@
 
         function renderRuler() {
             timelineRuler.innerHTML = '';
-            const total = getTotalDuration();
             const step = 10;
-            for (let t = 0; t <= total + 5; t += step) {
-                const pct = (t / total) * 100;
+            for (let t = 0; t <= BASE_SEQUENCE_DURATION; t += step) {
+                const pct = (t / BASE_SEQUENCE_DURATION) * 100;
                 if (pct > 100) break;
 
                 const tick = document.createElement('div');
-                tick.className = 'ruler-tick major';
+                tick.className = `ruler-tick ${t % 20 === 0 ? 'major' : ''}`;
                 tick.style.left = `${pct}%`;
 
                 const label = document.createElement('div');
@@ -1787,28 +1825,51 @@
             laneV1.innerHTML = '';
             laneA1.innerHTML = '';
 
-            const total = getTotalDuration();
             let currentOffset = 0;
 
             state.clips.forEach((clip) => {
                 const clipDuration = getClipDuration(clip);
-                const startPct = (currentOffset / total) * 100;
-                const widthPct = (clipDuration / total) * 100;
+                const startPct = (currentOffset / BASE_SEQUENCE_DURATION) * 100;
+                const widthPct = (clipDuration / BASE_SEQUENCE_DURATION) * 100;
 
                 const isSelected = (state.mode === 'clip' && clip.id === state.selectedClipId);
 
+                // Calculate remaining silence inside this clip
+                const remainingSilence = clip.subsegments
+                    .filter(s => s.type === 'silence')
+                    .reduce((a, s) => a + s.duration, 0);
+
                 // Render V1 Video Clip
                 const vClip = document.createElement('div');
-                vClip.className = `timeline-clip clip-v1 ${isSelected ? 'selected' : ''}`;
+                vClip.className = `timeline-clip clip-v1 ${isSelected ? 'selected' : ''} ${clip.isCut ? 'cut-completed' : ''}`;
+                vClip.setAttribute('data-clip-id', clip.id);
                 vClip.style.left = `${startPct}%`;
                 vClip.style.width = `calc(${widthPct}% - 2px)`;
-                vClip.innerHTML = `<div class="clip-title-label">${clip.videoName} [4K]</div>`;
+                
+                let tagText = '';
+                let tagClass = '';
+                if (clip.isCut) {
+                    tagText = '✓ CUT';
+                    tagClass = 'cut';
+                } else if (isSelected) {
+                    tagText = '🎯 TARGET';
+                    tagClass = 'selected-tag';
+                } else {
+                    tagText = `${remainingSilence.toFixed(1)}s GAP`;
+                    tagClass = 'uncut';
+                }
+
+                vClip.innerHTML = `
+                    <div class="clip-title-label">${clip.videoName}</div>
+                    <span class="clip-status-tag ${tagClass}">${tagText}</span>
+                `;
                 vClip.onclick = () => selectClip(clip.id);
                 laneV1.appendChild(vClip);
 
                 // Render A1 Audio Clip
                 const aClip = document.createElement('div');
-                aClip.className = `timeline-clip clip-a1 ${isSelected ? 'selected' : ''}`;
+                aClip.className = `timeline-clip clip-a1 ${isSelected ? 'selected' : ''} ${clip.isCut ? 'cut-completed' : ''}`;
+                aClip.setAttribute('data-clip-id', clip.id);
                 aClip.style.left = `${startPct}%`;
                 aClip.style.width = `calc(${widthPct}% - 2px)`;
                 aClip.innerHTML = `
@@ -1821,10 +1882,12 @@
                 // Draw waveform
                 setTimeout(() => drawWaveform(aClip.querySelector('canvas'), clip), 20);
 
-                // If detection is active (after user clicks cut or mark), draw silence overlays
-                if (state.showDetectedSilence && !clip.isCut) {
+                // Silence gap overlays:
+                // When active, show ONLY on the targeted clip(s)!
+                const isTargetClip = (state.mode === 'timeline') || (state.mode === 'clip' && clip.id === state.selectedClipId);
+                if (state.showDetectedSilence && isTargetClip && !clip.isCut) {
                     let subOffset = 0;
-                    clip.subsegments.forEach((seg, sIdx) => {
+                    clip.subsegments.forEach((seg) => {
                         if (seg.type === 'silence') {
                             const gapLeftPct = (subOffset / clipDuration) * 100;
                             const gapWidthPct = (seg.duration / clipDuration) * 100;
@@ -1844,13 +1907,13 @@
             });
 
             renderRuler();
-            updateMetrics();
         }
 
         function drawWaveform(canvas, clip) {
             if (!canvas) return;
             const w = canvas.offsetWidth;
             const h = canvas.offsetHeight;
+            if (!w || !h) return;
             canvas.width = w;
             canvas.height = h;
 
@@ -1860,6 +1923,7 @@
 
             const mid = h / 2;
             const clipDuration = getClipDuration(clip);
+            if (clipDuration <= 0) return;
 
             let subOffset = 0;
             clip.subsegments.forEach(seg => {
@@ -1868,16 +1932,18 @@
 
                 if (seg.type === 'speech') {
                     // Draw speech wave peaks
+                    ctx.fillStyle = '#2dd4bf';
                     for (let x = startX; x < endX; x += 3) {
-                        const seed = Math.sin(x * 0.12) * Math.cos(x * 0.28) + 0.3;
+                        const seed = Math.sin(x * 0.12) * Math.cos(x * 0.28) + 0.35;
                         const amplitude = Math.max(2, Math.abs(seed) * (h * 0.42));
                         ctx.fillRect(x, mid - amplitude, 1.8, amplitude * 2);
                     }
                 } else if (seg.type === 'silence') {
-                    // Draw flat silence line
-                    ctx.fillStyle = '#115e59';
+                    // Draw flat silence line with subtle amber tint
+                    ctx.fillStyle = '#0d9488';
                     ctx.fillRect(startX, mid - 1, endX - startX, 2);
-                    ctx.fillStyle = '#2dd4bf';
+                    ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+                    ctx.fillRect(startX, mid - 6, endX - startX, 12);
                 }
                 subOffset += seg.duration;
             });
@@ -1885,41 +1951,96 @@
 
         function selectClip(clipId) {
             state.selectedClipId = clipId;
-            if (state.mode === 'clip') {
-                const target = state.clips.find(c => c.id === clipId);
-                sublineText.innerText = `Selected: ${target ? target.name : 'Clip'}`;
-                renderClips();
-            }
+            state.mode = 'clip';
+            tabSelectedClip.classList.add('active');
+            tabWholeTimeline.classList.remove('active');
+
+            const target = state.clips.find(c => c.id === clipId);
+            timelineModeHint.innerHTML = `Mode: <b>Selected Clip: ${target ? target.name : 'Clip'}</b> (Click any clip to target)`;
+            
+            updateMetrics();
+            renderClips();
         }
 
         // --- 6. METRICS & TIME DISPLAY ---
         function updateMetrics() {
-            let targetClips = (state.mode === 'clip') 
-                ? state.clips.filter(c => c.id === state.selectedClipId)
-                : state.clips;
+            if (state.mode === 'clip') {
+                const target = state.clips.find(c => c.id === state.selectedClipId);
+                if (!target) return;
 
-            let silenceCount = 0;
-            let silenceDuration = 0;
-
-            targetClips.forEach(c => {
-                c.subsegments.forEach(s => {
+                let silenceCount = 0;
+                let silenceDuration = 0;
+                target.subsegments.forEach(s => {
                     if (s.type === 'silence') {
                         silenceCount++;
                         silenceDuration += s.duration;
                     }
                 });
-            });
 
-            const totalDuration = getTotalDuration();
-            const pctSaved = totalDuration > 0 ? ((silenceDuration / totalDuration) * 100).toFixed(1) : 0;
+                const clipDur = getClipDuration(target);
+                const pctSaved = clipDur > 0 ? ((silenceDuration / clipDur) * 100).toFixed(1) : 0;
 
-            metricGapsCount.innerText = `${silenceCount} pauses`;
-            metricSilenceDuration.innerText = `${silenceDuration.toFixed(1)}s`;
-            metricOrigDuration.innerText = formatTimecode(totalDuration).substring(3);
-            metricTimeSaved.innerText = `${pctSaved}%`;
+                metricGapsCount.innerText = `${silenceCount} pause${silenceCount === 1 ? '' : 's'}`;
+                metricSilenceDuration.innerText = `${silenceDuration.toFixed(1)}s`;
+                metricOrigDuration.innerText = formatTimecode(clipDur).substring(3);
+                metricTimeSaved.innerText = `${pctSaved}%`;
 
-            modalTimeRemoved.innerText = `${silenceDuration.toFixed(1)} Seconds`;
-            modalSpeedBoost.innerText = `+${pctSaved}% Faster`;
+                const shortName = target.name.split('_')[0] + '_' + target.name.split('_')[1];
+
+                if (target.isCut) {
+                    btnCutAction.className = 'btn-cut-action completed-state';
+                    btnCutAction.innerHTML = `<span>✓ ${shortName} CLEAN</span>`;
+                    sublineText.innerText = `${target.name} has no dead air remaining`;
+                    sublineDot.className = 'subline-dot';
+                } else if (state.isReviewMode) {
+                    btnCutAction.className = 'btn-cut-action review-state';
+                    btnCutAction.innerHTML = `<span>🔍 MARK GAPS IN ${shortName}</span>`;
+                    sublineText.innerText = `Review Mode: Ready to mark silence in ${target.name}`;
+                    sublineDot.className = 'subline-dot';
+                } else {
+                    btnCutAction.className = 'btn-cut-action';
+                    btnCutAction.innerHTML = `<span>✂️ CUT ${shortName} DEAD AIR</span>`;
+                    sublineText.innerText = `Ready to cut ${target.name} (${silenceDuration.toFixed(1)}s dead air)`;
+                    sublineDot.className = 'subline-dot';
+                }
+            } else {
+                let silenceCount = 0;
+                let silenceDuration = 0;
+
+                state.clips.forEach(c => {
+                    c.subsegments.forEach(s => {
+                        if (s.type === 'silence') {
+                            silenceCount++;
+                            silenceDuration += s.duration;
+                        }
+                    });
+                });
+
+                const totalDuration = getTotalDuration();
+                const pctSaved = totalDuration > 0 ? ((silenceDuration / totalDuration) * 100).toFixed(1) : 0;
+
+                metricGapsCount.innerText = `${silenceCount} pause${silenceCount === 1 ? '' : 's'}`;
+                metricSilenceDuration.innerText = `${silenceDuration.toFixed(1)}s`;
+                metricOrigDuration.innerText = formatTimecode(totalDuration).substring(3);
+                metricTimeSaved.innerText = `${pctSaved}%`;
+
+                if (silenceCount === 0) {
+                    btnCutAction.className = 'btn-cut-action completed-state';
+                    btnCutAction.innerHTML = '<span>✓ ALL CLIPS CLEAN</span>';
+                    sublineText.innerText = 'Whole sequence has been ripple-cleaned!';
+                    sublineDot.className = 'subline-dot';
+                } else if (state.isReviewMode) {
+                    btnCutAction.className = 'btn-cut-action review-state';
+                    btnCutAction.innerHTML = '<span>🔍 MARK GAPS ACROSS SEQUENCE</span>';
+                    sublineText.innerText = `Review Mode: Ready to mark ${silenceCount} gaps across sequence`;
+                    sublineDot.className = 'subline-dot';
+                } else {
+                    btnCutAction.className = 'btn-cut-action';
+                    btnCutAction.innerHTML = '<span>✂️ CUT WHOLE SEQUENCE</span>';
+                    sublineText.innerText = `Ready to cut ${silenceCount} pauses across all sequence clips`;
+                    sublineDot.className = 'subline-dot';
+                }
+            }
         }
 
         // --- 7. PLAYBACK TRANSPORT ---
@@ -1933,13 +2054,13 @@
             lastTimestamp = timestamp;
 
             state.currentTime += delta;
-            const totalDuration = getTotalDuration();
+            const currentTotal = getTotalDuration();
 
-            if (state.currentTime >= totalDuration) {
+            if (state.currentTime >= currentTotal) {
                 state.currentTime = 0;
             }
 
-            const pct = (state.currentTime / totalDuration) * 100;
+            const pct = (state.currentTime / BASE_SEQUENCE_DURATION) * 100;
             playheadLine.style.left = `calc(90px + ${pct}% * ((100% - 90px) / 100))`;
             timecodeDisplay.innerText = formatTimecode(state.currentTime);
 
@@ -1997,9 +2118,9 @@
             state.mode = 'clip';
             tabSelectedClip.classList.add('active');
             tabWholeTimeline.classList.remove('active');
-            timelineModeHint.innerHTML = 'Mode: <b>Selected Clip</b> (Click on any clip on the timeline to target it)';
             const target = state.clips.find(c => c.id === state.selectedClipId);
-            sublineText.innerText = `Mode: Target ${target ? target.name : 'selected clip'}`;
+            timelineModeHint.innerHTML = `Mode: <b>Selected Clip: ${target ? target.name : 'Clip'}</b> (Click any clip on timeline to target)`;
+            updateMetrics();
             renderClips();
         });
 
@@ -2007,8 +2128,8 @@
             state.mode = 'timeline';
             tabWholeTimeline.classList.add('active');
             tabSelectedClip.classList.remove('active');
-            timelineModeHint.innerHTML = 'Mode: <b>Whole Timeline</b> (Processes all 4 clips across the sequence)';
-            sublineText.innerText = 'Ready to cut whole sequence (all clips)';
+            timelineModeHint.innerHTML = 'Mode: <b>Whole Timeline</b> (Processes all clips across sequence)';
+            updateMetrics();
             renderClips();
         });
 
@@ -2016,16 +2137,7 @@
         chkReviewMode.addEventListener('change', (e) => {
             state.isReviewMode = e.target.checked;
             reviewModeLabel.innerText = state.isReviewMode ? 'Review Mode: ON' : 'Review Mode: OFF';
-            
-            if (state.isReviewMode) {
-                btnCutAction.className = 'btn-cut-action review-state';
-                btnCutAction.innerHTML = '<span>🔍 MARK SILENCE GAPS</span>';
-                sublineText.innerText = 'Review Mode: Marks gaps on timeline first';
-            } else {
-                btnCutAction.className = 'btn-cut-action';
-                btnCutAction.innerHTML = '<span>✂️ CUT DEAD AIR</span>';
-                sublineText.innerText = 'Direct Mode: 1-click ripple delete';
-            }
+            updateMetrics();
         });
 
         // Dials
@@ -2059,19 +2171,29 @@
         function executeMarkGaps() {
             state.showDetectedSilence = true;
             sublineDot.className = 'subline-dot busy';
-            sublineText.innerText = (state.mode === 'clip') 
-                ? `Scanning selected clip ${state.selectedClipId}...`
-                : 'Scanning whole sequence across all tracks...';
             btnCutAction.disabled = true;
 
+            const isClipMode = (state.mode === 'clip');
+            const target = state.clips.find(c => c.id === state.selectedClipId);
+            const shortName = target ? (target.name.split('_')[0] + '_' + target.name.split('_')[1]) : 'Clip';
+
+            sublineText.innerText = isClipMode 
+                ? `Scanning selected ${target ? target.name : 'clip'}...`
+                : 'Scanning whole sequence across all tracks...';
+
+            renderClips();
+
             setTimeout(() => {
-                sublineText.innerText = 'Silence gaps marked on timeline.';
+                sublineText.innerText = isClipMode
+                    ? `Silence gaps marked in ${target.name}.`
+                    : 'Silence gaps marked across all clips.';
                 sublineDot.className = 'subline-dot';
                 state.isMarked = true;
                 btnCutAction.disabled = false;
                 btnCutAction.className = 'btn-cut-action delete-state';
-                btnCutAction.innerHTML = '<span>🗑️ DELETE MARKED GAPS</span>';
-                renderClips();
+                btnCutAction.innerHTML = isClipMode
+                    ? `<span>🗑️ DELETE GAPS IN ${shortName}</span>`
+                    : '<span>🗑️ DELETE ALL MARKED GAPS</span>';
             }, 600);
         }
 
@@ -2080,46 +2202,91 @@
             sublineDot.className = 'subline-dot busy';
             btnCutAction.disabled = true;
 
+            const isClipMode = (state.mode === 'clip');
+            const targetClip = state.clips.find(c => c.id === state.selectedClipId);
+            const shortName = targetClip ? (targetClip.name.split('_')[0] + '_' + targetClip.name.split('_')[1]) : 'Clip';
+
             // Step 1: Premiere Sequence Auto-Backup
             sublineText.innerText = 'Creating sequence backup in Premiere...';
             backupToast.style.display = 'flex';
             renderClips();
 
             setTimeout(() => {
-                // Step 2: Analysis & Cut
-                sublineText.innerText = (state.mode === 'clip')
-                    ? `Ripple cutting selected Clip ${state.selectedClipId}...`
+                // Step 2: Cut animation on targeted clip(s)
+                sublineText.innerText = isClipMode
+                    ? `Ripple cutting silence in ${targetClip.name}...`
                     : 'Ripple deleting dead air across all sequence clips...';
-                document.querySelectorAll('.silence-gap-overlay').forEach(el => el.classList.add('cut-active'));
+
+                if (isClipMode) {
+                    const targetEls = document.querySelectorAll(`.timeline-clip[data-clip-id="${state.selectedClipId}"]`);
+                    targetEls.forEach(el => {
+                        el.querySelectorAll('.silence-gap-overlay').forEach(gapEl => gapEl.classList.add('cut-active'));
+                    });
+                } else {
+                    document.querySelectorAll('.silence-gap-overlay').forEach(gapEl => gapEl.classList.add('cut-active'));
+                }
                 playSnapSound();
             }, 650);
 
             setTimeout(() => {
                 // Step 3: Remove silence from targeted clip(s)
-                if (state.mode === 'clip') {
+                let removedSilenceSec = 0;
+
+                if (isClipMode) {
+                    const beforeDur = getClipDuration(targetClip);
+                    targetClip.subsegments.forEach(s => {
+                        if (s.type === 'silence') {
+                            removedSilenceSec += s.duration;
+                        }
+                    });
+
                     state.clips = state.clips.map(c => {
                         if (c.id === state.selectedClipId) {
-                            return { ...c, isCut: true, subsegments: c.subsegments.filter(s => s.type !== 'silence') };
+                            return {
+                                ...c,
+                                isCut: true,
+                                subsegments: c.subsegments.filter(s => s.type !== 'silence')
+                            };
                         }
-                        return c;
+                        return c; // ALL OTHER CLIPS REMAIN EXACTLY UNCHANGED!
                     });
+
+                    const boost = beforeDur > 0 ? ((removedSilenceSec / beforeDur) * 100).toFixed(0) : 0;
+                    modalTitle.innerText = `Dead Air Cut from ${targetClip.name}!`;
+                    modalDesc.innerHTML = `DeadAir backed up your sequence and automatically ripple-deleted <b>${removedSilenceSec.toFixed(1)}s</b> of silence from <b>${targetClip.name}</b>.<br><span style="color:#94a3b8;font-size:11.5px;">Clip 1, Clip 3, and Clip 4 remain untouched on your timeline with their original audio.</span>`;
+                    modalTimeRemoved.innerText = `${removedSilenceSec.toFixed(1)} Seconds`;
+                    modalSpeedBoost.innerText = `+${boost}% in ${shortName}`;
+
                 } else {
+                    const beforeTotal = getTotalDuration();
+                    state.clips.forEach(c => {
+                        c.subsegments.forEach(s => {
+                            if (s.type === 'silence') {
+                                removedSilenceSec += s.duration;
+                            }
+                        });
+                    });
+
                     state.clips = state.clips.map(c => ({
                         ...c,
                         isCut: true,
                         subsegments: c.subsegments.filter(s => s.type !== 'silence')
                     }));
+
+                    const boost = beforeTotal > 0 ? ((removedSilenceSec / beforeTotal) * 100).toFixed(0) : 0;
+                    modalTitle.innerText = 'Dead Air Cut Across Entire Sequence!';
+                    modalDesc.innerHTML = `DeadAir backed up your sequence and automatically ripple-deleted <b>${removedSilenceSec.toFixed(1)}s</b> of silent pauses across all clips in your sequence.`;
+                    modalTimeRemoved.innerText = `${removedSilenceSec.toFixed(1)} Seconds`;
+                    modalSpeedBoost.innerText = `+${boost}% Faster`;
                 }
 
                 state.showDetectedSilence = false;
+                state.isMarked = false;
                 state.currentTime = 0;
                 renderClips();
+                updateMetrics();
 
-                sublineDot.className = 'subline-dot';
-                sublineText.innerText = 'COMPLETED! Gaps ripple-deleted seamlessly.';
                 btnCutAction.disabled = false;
-                btnCutAction.className = 'btn-cut-action completed-state';
-                btnCutAction.innerHTML = '<span>COMPLETED!</span>';
 
                 // Pop success modal
                 setTimeout(() => {
@@ -2137,23 +2304,14 @@
             state.currentTime = 0;
             backupToast.style.display = 'none';
 
-            if (state.isReviewMode) {
-                btnCutAction.className = 'btn-cut-action review-state';
-                btnCutAction.innerHTML = '<span>🔍 MARK SILENCE GAPS</span>';
-            } else {
-                btnCutAction.className = 'btn-cut-action';
-                btnCutAction.innerHTML = '<span>✂️ CUT DEAD AIR</span>';
-            }
-
-            sublineText.innerText = (state.mode === 'clip')
-                ? `Ready to cut Clip ${state.selectedClipId}`
-                : 'Ready to cut whole sequence';
-
+            sublineDot.className = 'subline-dot';
             playheadLine.style.left = '90px';
             timecodeDisplay.innerText = '00:00:00:00';
             updateVUMeter(0);
             speakingRing.classList.remove('active');
+
             renderClips();
+            updateMetrics();
         }
 
         btnResetTimeline.addEventListener('click', restartWholeTimeline);
@@ -2162,6 +2320,17 @@
         modalBtnRestart.addEventListener('click', () => {
             successModal.classList.remove('active');
             restartWholeTimeline();
+        });
+
+        // Timeline Ruler Click to Scrub Playhead
+        timelineRuler.addEventListener('click', (e) => {
+            const rect = timelineRuler.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const pct = Math.max(0, Math.min(1, clickX / rect.width));
+            state.currentTime = Math.min(getTotalDuration(), pct * BASE_SEQUENCE_DURATION);
+            const playheadPct = (state.currentTime / BASE_SEQUENCE_DURATION) * 100;
+            playheadLine.style.left = `calc(90px + ${playheadPct}% * ((100% - 90px) / 100))`;
+            timecodeDisplay.innerText = formatTimecode(state.currentTime);
         });
 
         // Transport Controls
@@ -2188,8 +2357,9 @@
             }
         });
 
-        // Initial Clean Render (No pre-highlighted yellow gaps!)
+        // Initial Clean Render & Metrics
         renderClips();
+        updateMetrics();
     </script>
 </body>
 </html>
