@@ -31,4 +31,4 @@ Deploy this repository to **GitHub Pages** to test the simulator live on any dev
 ## 🛒 Get DeadAir for Adobe Premiere Pro CC 2018–2026+
 - **Instant Download:** [Buy on Gumroad](https://raybornlabs.gumroad.com/l/eyocco)
 - **Support:** contact.raybornlabs@gmail.com
-- **Developed by:** [Rayborn Labs](https://raybornlabs.gumroad.com) (Founder: Brayan Lee Osborn)
+- **Developed by:** [Rayborn Labs](https://raybornlabs.gumroad.com)
